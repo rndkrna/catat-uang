@@ -51,15 +51,13 @@ app.get('*', (c) => {
 });
 
 // Start server
-const port = process.env.PORT ? parseInt(process.env.PORT) : 4000;
-console.log(`Server is running on port ${port}`);
-
-
+const port = 4000;
+console.log(`Server is running on http://localhost:${port}`);
 
 serve({
   fetch: app.fetch,
   port,
+  hostname: '0.0.0.0',
 });
 
 export default app;
-
