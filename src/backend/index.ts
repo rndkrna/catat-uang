@@ -21,8 +21,11 @@ app.use('*', cors({
   credentials: true,
 }));
 
-// Health check
-app.get('/', (c) => c.json({ status: 'ok', message: 'Tulis Duit API' }));
+import { readFileSync } from 'fs';
+import { serveStatic } from '@hono/node-server/serve-static';
+
+// Health check moved to /api
+app.get('/api', (c) => c.json({ status: 'ok', message: 'Tulis Duit API' }));
 
 // API Routes
 app.route('/api/auth', authRoutes);
@@ -32,9 +35,23 @@ app.route('/api/payments', paymentRoutes);
 app.route('/api/admin', adminRoutes);
 app.route('/api/ocr', ocrRoutes);
 
+// Serve Static Files for Frontend
+app.use('/assets/*', serveStatic({ root: './dist' }));
+app.use('/vite.svg', serveStatic({ root: './dist' }));
+
+// Fallback all other routes to React Router (Frontend)
+app.get('*', (c) => {
+  try {
+    const html = readFileSync('./dist/index.html', 'utf-8');
+    return c.html(html);
+  } catch (error) {
+    return c.text('Frontend build not found. Please run build process.', 404);
+  }
+});
+
 // Start server
-const port = 4000;
-console.log(`Server is running on http://localhost:${port}`);
+const port = process.env.PORT ? parseInt(process.env.PORT) : 4000;
+console.log(`Server is running on port ${port}`);
 
 
 
