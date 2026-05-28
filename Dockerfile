@@ -40,4 +40,4 @@ COPY tsconfig.json ./
 EXPOSE 3000
 
 # Start the application
-CMD ["node", "src/backend/index.ts"]
+CMD ["npx", "tsx", "src/backend/index.ts"]
