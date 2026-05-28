@@ -53,7 +53,7 @@ export default function Dashboard() {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`http://${window.location.hostname}:4000/api/transactions`, {
+      const res = await fetch(`/api/transactions`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error('Gagal mengambil data');
@@ -75,7 +75,7 @@ export default function Dashboard() {
     
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:4000/api/transactions/export', {
+      const response = await fetch('/api/transactions/export', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
@@ -109,7 +109,7 @@ export default function Dashboard() {
     setIsSavingPartner(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:4000/api/auth/partner', {
+      const res = await fetch('/api/auth/partner', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',

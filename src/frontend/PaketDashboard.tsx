@@ -9,7 +9,7 @@ export default function PaketDashboard() {
   const handleExport = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:4000/api/transactions/export', {
+      const response = await fetch('/api/transactions/export', {
         headers: { Authorization: `Bearer ${token}` },
       });
 

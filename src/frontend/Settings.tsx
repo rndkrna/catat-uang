@@ -46,7 +46,7 @@ function ChangePasswordModal({ onClose, user }: { onClose: () => void; user: any
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`http://${window.location.hostname}:4000/api/auth/change-password`, {
+      const res = await fetch(`/api/auth/change-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -192,7 +192,7 @@ function SetSaldoModal({ onClose, currentUser }: { onClose: () => void; currentU
     setError('');
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`http://${window.location.hostname}:4000/api/transactions`, {
+      const res = await fetch(`/api/transactions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -66,7 +66,7 @@ export default function Transactions() {
     setError('');
     try {
       // Fetch Active
-      const res = await fetch(`http://${window.location.hostname}:4000/api/transactions`, {
+      const res = await fetch(`/api/transactions`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
@@ -77,7 +77,7 @@ export default function Transactions() {
         }
       }
       // Fetch Deleted
-      const resDel = await fetch(`http://${window.location.hostname}:4000/api/transactions/deleted`, {
+      const resDel = await fetch(`/api/transactions/deleted`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (resDel.ok) {
@@ -103,7 +103,7 @@ export default function Transactions() {
     if (!confirm('Pindahkan transaksi ini ke riwayat sampah?')) return;
     setProcessingId(id);
     try {
-      const res = await fetch(`http://${window.location.hostname}:4000/api/transactions/${id}`, {
+      const res = await fetch(`/api/transactions/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -124,7 +124,7 @@ export default function Transactions() {
     if (!confirm('Pulihkan transaksi ini? Saldo Anda akan disesuaikan kembali.')) return;
     setProcessingId(id);
     try {
-      const res = await fetch(`http://${window.location.hostname}:4000/api/transactions/${id}/restore`, {
+      const res = await fetch(`/api/transactions/${id}/restore`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -152,7 +152,7 @@ export default function Transactions() {
     if (!editingTx) return;
     setProcessingId(editingTx.id);
     try {
-      const res = await fetch(`http://${window.location.hostname}:4000/api/transactions/${editingTx.id}`, {
+      const res = await fetch(`/api/transactions/${editingTx.id}`, {
         method: 'PUT',
         headers: { 
           Authorization: `Bearer ${token}`,

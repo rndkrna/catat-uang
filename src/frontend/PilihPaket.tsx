@@ -397,7 +397,7 @@ export default function PilihPaket() {
                       const totalTransfer = activePlan ? getPrice(activePlan.price).rawTotal - uniqueDiscount : 0;
                       
                       try {
-                        const res = await fetch('http://localhost:4000/api/payments', {
+                        const res = await fetch('/api/payments', {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({

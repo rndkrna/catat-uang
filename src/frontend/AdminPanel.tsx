@@ -47,7 +47,7 @@ export default function AdminPanel() {
   const fetchPayments = async () => {
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:4000/api/payments');
+      const res = await fetch('/api/payments');
       const data = await res.json();
       if (data.success) {
         setPayments(data.data);
@@ -61,7 +61,7 @@ export default function AdminPanel() {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:4000/api/admin/users');
+      const res = await fetch('/api/admin/users');
       const data = await res.json();
       if (data.success) {
         setUsers(data.data);
@@ -84,7 +84,7 @@ export default function AdminPanel() {
     
     setApproving(id);
     try {
-      const res = await fetch(`http://localhost:4000/api/payments/${id}/approve`, {
+      const res = await fetch(`/api/payments/${id}/approve`, {
         method: 'POST'
       });
       if (res.ok) {
@@ -103,7 +103,7 @@ export default function AdminPanel() {
     
     setUpdatingUser(userId);
     try {
-      const res = await fetch(`http://localhost:4000/api/admin/users/${userId}/package`, {
+      const res = await fetch(`/api/admin/users/${userId}/package`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ package: newPkg })
