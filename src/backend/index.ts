@@ -1,7 +1,9 @@
 import 'dotenv/config';
+import { readFileSync } from 'fs';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { serve } from '@hono/node-server';
+import { serveStatic } from '@hono/node-server/serve-static';
 import authRoutes from './routes/auth.js';
 import transactionRoutes from './routes/transactions.js';
 import whatsappRoutes from './routes/whatsapp.js';
@@ -21,8 +23,7 @@ app.use('*', cors({
   credentials: true,
 }));
 
-import { readFileSync } from 'fs';
-import { serveStatic } from '@hono/node-server/serve-static';
+
 
 // Health check moved to /api
 app.get('/api', (c) => c.json({ status: 'ok', message: 'Tulis Duit API' }));
