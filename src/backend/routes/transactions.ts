@@ -2,20 +2,9 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { db } from '../services/database.js';
+import { authMiddleware } from '../middleware/auth.js';
 
 const transactionRouter = new Hono();
-
-// Helper: ambil userId dari header Authorization (token base64)
-function getUserIdFromToken(authHeader: string | undefined): number | null {
-  if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
-  try {
-    const token = authHeader.replace('Bearer ', '');
-    const decoded = JSON.parse(atob(token));
-    return decoded.id ?? null;
-  } catch {
-    return null;
-  }
-}
 
 // Schema untuk membuat transaksi
 const transactionSchema = z.object({
@@ -25,12 +14,13 @@ const transactionSchema = z.object({
   description: z.string().optional(),
 });
 
+// Terapkan middleware auth untuk seluruh rute transaksi
+transactionRouter.use('/*', authMiddleware);
+
 // GET /api/transactions — ambil semua transaksi user yang login
 transactionRouter.get('/', async (c) => {
-  const userId = getUserIdFromToken(c.req.header('Authorization'));
-  if (!userId) {
-    return c.json({ success: false, message: 'Unauthorized' }, 401);
-  }
+  const userPayload = c.get('user');
+  const userId = userPayload.id;
 
   try {
     const transactions = await db.getTransactions(userId);
@@ -77,10 +67,8 @@ transactionRouter.get('/', async (c) => {
 
 // GET /api/transactions/export — export transaksi ke CSV (Khusus Premium)
 transactionRouter.get('/export', async (c) => {
-  const userId = getUserIdFromToken(c.req.header('Authorization'));
-  if (!userId) {
-    return c.json({ success: false, message: 'Unauthorized' }, 401);
-  }
+  const userPayload = c.get('user');
+  const userId = userPayload.id;
 
   try {
     const user = await db.getUserById(userId);
@@ -130,10 +118,8 @@ transactionRouter.get('/export', async (c) => {
 
 // POST /api/transactions — buat transaksi baru
 transactionRouter.post('/', zValidator('json', transactionSchema), async (c) => {
-  const userId = getUserIdFromToken(c.req.header('Authorization'));
-  if (!userId) {
-    return c.json({ success: false, message: 'Unauthorized' }, 401);
-  }
+  const userPayload = c.get('user');
+  const userId = userPayload.id;
 
   try {
     const body = c.req.valid('json');
@@ -157,10 +143,8 @@ transactionRouter.post('/', zValidator('json', transactionSchema), async (c) => 
 
 // GET /api/transactions/deleted - ambil riwayat sampah
 transactionRouter.get('/deleted', async (c) => {
-  const userId = getUserIdFromToken(c.req.header('Authorization'));
-  if (!userId) {
-    return c.json({ success: false, message: 'Unauthorized' }, 401);
-  }
+  const userPayload = c.get('user');
+  const userId = userPayload.id;
 
   try {
     const deletedTransactions = await db.getDeletedTransactions(userId);
@@ -175,10 +159,8 @@ transactionRouter.get('/deleted', async (c) => {
 
 // DELETE /api/transactions/:id — hapus transaksi (soft delete)
 transactionRouter.delete('/:id', async (c) => {
-  const userId = getUserIdFromToken(c.req.header('Authorization'));
-  if (!userId) {
-    return c.json({ success: false, message: 'Unauthorized' }, 401);
-  }
+  const userPayload = c.get('user');
+  const userId = userPayload.id;
 
   const user = await db.getUserById(userId);
   if (!user || !['starter', 'premium', 'pro'].includes(user.package)) {
@@ -200,10 +182,8 @@ transactionRouter.delete('/:id', async (c) => {
 
 // POST /api/transactions/:id/restore — restore transaksi
 transactionRouter.post('/:id/restore', async (c) => {
-  const userId = getUserIdFromToken(c.req.header('Authorization'));
-  if (!userId) {
-    return c.json({ success: false, message: 'Unauthorized' }, 401);
-  }
+  const userPayload = c.get('user');
+  const userId = userPayload.id;
 
   const user = await db.getUserById(userId);
   if (!user || !['starter', 'premium', 'pro'].includes(user.package)) {
@@ -225,10 +205,8 @@ transactionRouter.post('/:id/restore', async (c) => {
 
 // PUT /api/transactions/:id — edit transaksi
 transactionRouter.put('/:id', zValidator('json', transactionSchema), async (c) => {
-  const userId = getUserIdFromToken(c.req.header('Authorization'));
-  if (!userId) {
-    return c.json({ success: false, message: 'Unauthorized' }, 401);
-  }
+  const userPayload = c.get('user');
+  const userId = userPayload.id;
 
   const user = await db.getUserById(userId);
   if (!user || !['starter', 'premium', 'pro'].includes(user.package)) {

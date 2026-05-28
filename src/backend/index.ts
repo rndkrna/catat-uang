@@ -38,6 +38,7 @@ app.route('/api/ocr', ocrRoutes);
 
 // Serve Static Files for Frontend
 app.use('/assets/*', serveStatic({ root: './dist' }));
+app.use('/images/*', serveStatic({ root: './dist' }));
 app.use('/vite.svg', serveStatic({ root: './dist' }));
 
 // Fallback all other routes to React Router (Frontend)

@@ -2,9 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Shield, Check, Loader2, RefreshCw, Lock, Eye, EyeOff, LogOut } from 'lucide-react';
 
-// Password admin — ganti sesuai kebutuhan
-const ADMIN_PASSWORD = 'admin@tulisduit2025';
-const ADMIN_SESSION_KEY = 'admin_authenticated';
+// Password admin kini ditangani oleh server
+const ADMIN_SESSION_KEY = 'admin_jwt_token';
 
 export default function AdminPanel() {
   const navigate = useNavigate();
@@ -22,19 +21,30 @@ export default function AdminPanel() {
 
   // Cek session admin
   useEffect(() => {
-    const auth = sessionStorage.getItem(ADMIN_SESSION_KEY);
-    if (auth === 'true') setIsAuthenticated(true);
+    const token = sessionStorage.getItem(ADMIN_SESSION_KEY);
+    if (token) setIsAuthenticated(true);
   }, []);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (passwordInput === ADMIN_PASSWORD) {
-      sessionStorage.setItem(ADMIN_SESSION_KEY, 'true');
-      setIsAuthenticated(true);
-      setAuthError('');
-    } else {
-      setAuthError('Password salah. Coba lagi.');
-      setPasswordInput('');
+    try {
+      const res = await fetch('/api/auth/admin-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: passwordInput })
+      });
+      const data = await res.json();
+      
+      if (res.ok && data.success) {
+        sessionStorage.setItem(ADMIN_SESSION_KEY, data.token);
+        setIsAuthenticated(true);
+        setAuthError('');
+      } else {
+        setAuthError(data.message || 'Password salah. Coba lagi.');
+        setPasswordInput('');
+      }
+    } catch (error) {
+      setAuthError('Tidak dapat terhubung ke server.');
     }
   };
 
@@ -47,7 +57,10 @@ export default function AdminPanel() {
   const fetchPayments = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/payments');
+      const token = sessionStorage.getItem(ADMIN_SESSION_KEY);
+      const res = await fetch('/api/payments', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       const data = await res.json();
       if (data.success) {
         setPayments(data.data);
@@ -61,7 +74,10 @@ export default function AdminPanel() {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/users');
+      const token = sessionStorage.getItem(ADMIN_SESSION_KEY);
+      const res = await fetch('/api/admin/users', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       const data = await res.json();
       if (data.success) {
         setUsers(data.data);
@@ -84,8 +100,10 @@ export default function AdminPanel() {
     
     setApproving(id);
     try {
+      const token = sessionStorage.getItem(ADMIN_SESSION_KEY);
       const res = await fetch(`/api/payments/${id}/approve`, {
-        method: 'POST'
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
         setPayments(payments.filter(p => p.id !== id));
@@ -103,9 +121,13 @@ export default function AdminPanel() {
     
     setUpdatingUser(userId);
     try {
+      const token = sessionStorage.getItem(ADMIN_SESSION_KEY);
       const res = await fetch(`/api/admin/users/${userId}/package`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}` 
+        },
         body: JSON.stringify({ package: newPkg })
       });
       if (res.ok) {

@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import bcrypt from 'bcryptjs';
 import { db } from '../services/database.js';
 import { generatePassword, formatPhoneNumber } from '../utils/password.js';
 import { parseTransactionMessage, scanReceiptImage } from '../utils/parser.js';
@@ -58,7 +59,8 @@ whatsappRouter.post('/webhook', async (c) => {
 
   if (!user) {
     const password = generatePassword(8);
-    user = await db.createUser(phoneNumber, password);
+    const hashedPassword = await bcrypt.hash(password, 10);
+    user = await db.createUser(phoneNumber, hashedPassword);
 
     const appUrl = process.env.APP_URL || 'http://localhost:3000';
     const welcome = `🎉 *Selamat Datang di Tulis Duit!*

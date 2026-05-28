@@ -1,6 +1,8 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 
 import { db } from '../services/database.js';
 
@@ -19,15 +21,25 @@ authRouter.post('/login', zValidator('json', loginSchema), async (c) => {
   // Verify user in database
   const user = await db.getUserByPhoneNumber(phoneNumber);
   
-  if (!user || user.password !== password) {
+  if (!user) {
+    return c.json({
+      success: false,
+      message: 'Nomor WhatsApp atau password salah',
+    }, 401);
+  }
+
+  // Verifikasi password (dengan fallback ke plain text jika db belum dimigrasi sepenuhnya)
+  const isPasswordValid = await bcrypt.compare(password, user.password);
+  if (!isPasswordValid && user.password !== password) {
     return c.json({
       success: false,
       message: 'Nomor WhatsApp atau password salah',
     }, 401);
   }
   
-  // Generate JWT token (simple placeholder for now, or just return success)
-  const token = btoa(JSON.stringify({ id: user.id, phoneNumber: user.phoneNumber }));
+  // Generate JWT token
+  const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-for-development';
+  const token = jwt.sign({ id: user.id, phoneNumber: user.phoneNumber }, JWT_SECRET, { expiresIn: '7d' });
   
   return c.json({
     success: true,
@@ -46,21 +58,44 @@ authRouter.post('/login', zValidator('json', loginSchema), async (c) => {
   });
 });
 
-// Register endpoint (via WhatsApp webhook)
+// Admin login endpoint
+authRouter.post('/admin-login', async (c) => {
+  const { password } = await c.req.json();
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin@tulisduit2025';
+  
+  if (password !== ADMIN_PASSWORD) {
+    return c.json({ success: false, message: 'Password salah' }, 401);
+  }
+  
+  const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-for-development';
+  const token = jwt.sign({ role: 'admin' }, JWT_SECRET, { expiresIn: '1d' });
+  
+  return c.json({ success: true, token });
+});
+
+// Register endpoint (via web/frontend)
 authRouter.post('/register', async (c) => {
   const { phoneNumber } = await c.req.json();
   
-  // TODO: Implement registration logic
+  const existingUser = await db.getUserByPhoneNumber(phoneNumber);
+  if (existingUser) {
+    return c.json({ success: false, message: 'Nomor sudah terdaftar' }, 400);
+  }
+  
   // - Generate random password
+  const { generatePassword } = await import('../utils/password.js');
+  const password = generatePassword(8);
+  const hashedPassword = await bcrypt.hash(password, 10);
+  
   // - Save to database
-  // - Send password via WhatsApp
+  await db.createUser(phoneNumber, hashedPassword);
   
   return c.json({
     success: true,
     message: 'Registration successful',
     data: {
       phoneNumber,
-      password: 'generated-password',
+      password: password, // Send plain text back to client ONCE
     },
   });
 });
@@ -70,7 +105,8 @@ function getUserIdFromToken(authHeader: string | undefined): number | null {
   if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
   try {
     const token = authHeader.replace('Bearer ', '');
-    const decoded = JSON.parse(atob(token));
+    const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-for-development';
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
     return decoded.id ?? null;
   } catch {
     return null;
@@ -91,11 +127,17 @@ authRouter.post('/change-password', async (c) => {
   }
 
   const user = await db.getUserById(userId);
-  if (!user || user.password !== oldPassword) {
+  if (!user) {
+    return c.json({ success: false, message: 'User not found.' }, 404);
+  }
+
+  const isOldPasswordValid = await bcrypt.compare(oldPassword, user.password);
+  if (!isOldPasswordValid && user.password !== oldPassword) {
     return c.json({ success: false, message: 'Password lama tidak sesuai.' }, 401);
   }
 
-  await db.updatePassword(userId, newPassword);
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+  await db.updatePassword(userId, hashedPassword);
   return c.json({ success: true, message: 'Password berhasil diubah.' });
 });
 

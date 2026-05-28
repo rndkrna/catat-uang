@@ -1,7 +1,11 @@
 import { Hono } from 'hono';
 import { db } from '../services/database.js';
+import { adminMiddleware } from '../middleware/admin.js';
 
 const adminRouter = new Hono();
+
+// Terapkan middleware admin untuk seluruh rute admin
+adminRouter.use('/*', adminMiddleware);
 
 // GET /api/admin/users
 adminRouter.get('/users', async (c) => {

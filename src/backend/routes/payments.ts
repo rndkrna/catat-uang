@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { db } from '../services/database.js';
+import { adminMiddleware } from '../middleware/admin.js';
 
 const paymentRoutes = new Hono();
 
@@ -20,7 +21,7 @@ paymentRoutes.post('/', async (c) => {
 });
 
 // GET /api/payments -> Get all pending payments for admin
-paymentRoutes.get('/', async (c) => {
+paymentRoutes.get('/', adminMiddleware, async (c) => {
   try {
     const payments = await db.getPendingPayments();
     return c.json({ success: true, data: payments });
@@ -30,7 +31,7 @@ paymentRoutes.get('/', async (c) => {
 });
 
 // POST /api/payments/:id/approve -> Approve a payment
-paymentRoutes.post('/:id/approve', async (c) => {
+paymentRoutes.post('/:id/approve', adminMiddleware, async (c) => {
   const id = parseInt(c.req.param('id'), 10);
   
   if (isNaN(id)) {
