@@ -25,7 +25,7 @@ COPY package*.json ./
 RUN npm ci --only=production
 
 # Install Hono and backend dependencies
-RUN npm install hono @hono/zod-validator zod
+RUN npm install hono @hono/zod-validator zod tsx
 
 # Copy built React app
 COPY --from=builder /app/dist ./dist
@@ -40,4 +40,4 @@ COPY tsconfig.json ./
 EXPOSE 3000
 
 # Start the application
-CMD ["node", "src/backend/index.ts"]
+CMD ["npx", "tsx", "src/backend/index.ts"]
