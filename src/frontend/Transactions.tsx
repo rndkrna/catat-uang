@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -15,7 +15,9 @@ import {
   AlertCircle,
   Edit2,
   RotateCcw,
-  X
+  X,
+  Search,
+  SlidersHorizontal,
 } from 'lucide-react';
 
 interface Transaction {
@@ -41,6 +43,11 @@ export default function Transactions() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [processingId, setProcessingId] = useState<number | null>(null);
+
+  // Search & filter state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
   
   // Edit state
   const [editingTx, setEditingTx] = useState<Transaction | null>(null);
@@ -196,10 +203,28 @@ export default function Transactions() {
 
   const currentTransactions = viewMode === 'aktif' ? filterByPeriod(allTransactions) : deletedTransactions;
 
-  const periodIncome = currentTransactions
+  // All unique categories for the filter chips
+  const allCategories = useMemo(() =>
+    [...new Set(allTransactions.map(t => t.category))].sort(),
+    [allTransactions]
+  );
+
+  // Apply search + category filter on top of period filter
+  const displayedTransactions = useMemo(() => {
+    const q = searchQuery.toLowerCase();
+    return currentTransactions.filter(t => {
+      const matchSearch = !q ||
+        t.description?.toLowerCase().includes(q) ||
+        t.category.toLowerCase().includes(q);
+      const matchCat = !categoryFilter || t.category === categoryFilter;
+      return matchSearch && matchCat;
+    });
+  }, [currentTransactions, searchQuery, categoryFilter]);
+
+  const periodIncome = displayedTransactions
     .filter(t => t.type === 'income')
     .reduce((s, t) => s + t.amount, 0);
-  const periodExpense = currentTransactions
+  const periodExpense = displayedTransactions
     .filter(t => t.type === 'expense')
     .reduce((s, t) => s + t.amount, 0);
 
@@ -310,7 +335,7 @@ export default function Transactions() {
                   </div>
                 )}
                 <div className="text-[10px] text-white/70 font-medium">
-                  {currentTransactions.length} transaksi • periode {period === 'hari' ? 'hari ini' : period === 'minggu' ? 'minggu ini' : period === 'bulan' ? 'bulan ini' : 'semua'}
+                  {displayedTransactions.length} transaksi • periode {period === 'hari' ? 'hari ini' : period === 'minggu' ? 'minggu ini' : period === 'bulan' ? 'bulan ini' : 'semua'}
                 </div>
                 <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
               </div>
@@ -375,6 +400,84 @@ export default function Transactions() {
             </div>
           )}
 
+          {/* Search & Filter */}
+          {viewMode === 'aktif' && (
+            <div className="space-y-3">
+              {/* Search bar */}
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Cari transaksi..."
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 shadow-sm"
+                  />
+                </div>
+                <button
+                  onClick={() => setShowFilters(f => !f)}
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center border shadow-sm transition-colors ${
+                    showFilters || categoryFilter
+                      ? 'bg-orange-500 text-white border-orange-500'
+                      : 'bg-white text-gray-500 border-gray-200'
+                  }`}
+                >
+                  <SlidersHorizontal size={16} />
+                </button>
+              </div>
+
+              {/* Category chips */}
+              <AnimatePresence>
+                {(showFilters || categoryFilter) && allCategories.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="flex gap-2 overflow-x-auto pb-1">
+                      <button
+                        onClick={() => setCategoryFilter('')}
+                        className={`shrink-0 px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all ${
+                          !categoryFilter ? 'bg-orange-500 text-white' : 'bg-white text-gray-500 border border-gray-200'
+                        }`}
+                      >
+                        Semua
+                      </button>
+                      {allCategories.map(cat => (
+                        <button
+                          key={cat}
+                          onClick={() => setCategoryFilter(cat === categoryFilter ? '' : cat)}
+                          className={`shrink-0 px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all ${
+                            categoryFilter === cat ? 'bg-orange-500 text-white' : 'bg-white text-gray-500 border border-gray-200'
+                          }`}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Result count */}
+              {(searchQuery || categoryFilter) && (
+                <div className="flex items-center justify-between px-1">
+                  <span className="text-[10px] font-bold text-gray-400">
+                    {displayedTransactions.length} hasil ditemukan
+                  </span>
+                  <button
+                    onClick={() => { setSearchQuery(''); setCategoryFilter(''); }}
+                    className="text-[10px] font-bold text-orange-500 underline"
+                  >
+                    Reset filter
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Keterangan fitur */}
           {!hasPremiumFeatures && !isDummy && (
             <div className="flex items-center gap-2 text-[10px] text-slate-400 px-1 bg-slate-100 p-2 rounded-lg">
@@ -398,7 +501,7 @@ export default function Transactions() {
                   <Loader2 size={28} className="animate-spin text-orange-400" />
                   <p className="text-xs text-gray-400">Memuat transaksi...</p>
                 </motion.div>
-              ) : currentTransactions.length === 0 ? (
+              ) : displayedTransactions.length === 0 ? (
                 <motion.div 
                   key="empty"
                   initial={{ opacity: 0 }}
@@ -420,7 +523,7 @@ export default function Transactions() {
                   exit={{ opacity: 0, y: -10 }}
                   className="space-y-3"
                 >
-                  {currentTransactions.map((tx) => (
+                  {displayedTransactions.map((tx) => (
                     <div key={tx.id} className="rounded-2xl p-4 shadow-sm border bg-white border-gray-50 flex items-center justify-between group">
                       <div className="flex items-center gap-4">
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
