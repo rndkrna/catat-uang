@@ -24,8 +24,8 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --only=production
 
-# Install Hono and backend dependencies
-RUN npm install hono @hono/zod-validator zod tsx
+# Install tsx globally to avoid esbuild version conflicts
+RUN npm install -g tsx
 
 # Copy built React app
 COPY --from=builder /app/dist ./dist
