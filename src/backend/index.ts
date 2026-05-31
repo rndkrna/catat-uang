@@ -13,22 +13,21 @@ import ocrRoutes from './routes/ocr.js';
 import { db } from './services/database.js';
 
 const app = new Hono();
+const port = Number(process.env.PORT) || 4000;
 
-// Connect to database
-await db.connect();
-
-// Middleware
 app.use('*', cors({
   origin: '*',
   credentials: true,
 }));
 
+app.get('/api/health', (c) => c.json({
+  status: 'ok',
+  port,
+  uptime: process.uptime(),
+}));
 
-
-// Health check moved to /api
 app.get('/api', (c) => c.json({ status: 'ok', message: 'Tulis Duit API' }));
 
-// API Routes
 app.route('/api/auth', authRoutes);
 app.route('/api/transactions', transactionRoutes);
 app.route('/api/whatsapp', whatsappRoutes);
@@ -36,29 +35,40 @@ app.route('/api/payments', paymentRoutes);
 app.route('/api/admin', adminRoutes);
 app.route('/api/ocr', ocrRoutes);
 
-// Serve Static Files for Frontend
 app.use('/assets/*', serveStatic({ root: './dist' }));
 app.use('/images/*', serveStatic({ root: './dist' }));
 app.use('/vite.svg', serveStatic({ root: './dist' }));
 
-// Fallback all other routes to React Router (Frontend)
 app.get('*', (c) => {
   try {
     const html = readFileSync('./dist/index.html', 'utf-8');
     return c.html(html);
-  } catch (error) {
+  } catch {
     return c.text('Frontend build not found. Please run build process.', 404);
   }
 });
 
-// Start server
-const port = Number(process.env.PORT) || 4000;
-console.log(`Server is running on http://localhost:${port}`);
+async function start() {
+  try {
+    await db.connect();
+    console.log(`[Startup] Database connected`);
+  } catch (err) {
+    console.error('[Startup] Database connection FAILED:', err instanceof Error ? err.message : err);
+    process.exit(1);
+  }
 
-serve({
-  fetch: app.fetch,
-  port,
-  hostname: '0.0.0.0',
+  serve({
+    fetch: app.fetch,
+    port,
+    hostname: '0.0.0.0',
+  });
+
+  console.log(`[Startup] Server running on 0.0.0.0:${port} (PORT env=${process.env.PORT ?? 'not set'})`);
+}
+
+start().catch((err) => {
+  console.error('[Startup] Fatal error:', err);
+  process.exit(1);
 });
 
 export default app;

@@ -11,6 +11,7 @@
     "lint": "tsc --noEmit",
     "test": "node --import tsx --test \"src/**/*.test.ts\"",
     "backend": "tsx --watch src/backend/index.ts",
+    "start": "tsx src/backend/index.ts",
     "dev:full": "node start-dev.js",
     "full": "npm run dev:full"
   },
@@ -40,6 +41,7 @@
     "recharts": "^3.8.1",
     "sharp": "^0.34.5",
     "tesseract.js": "^7.0.0",
+    "tsx": "^4.21.0",
     "twilio": "^6.0.0",
     "ws": "^8.21.0",
     "zod": "^4.3.6"
@@ -51,7 +53,6 @@
     "@types/node": "^22.14.0",
     "autoprefixer": "^10.4.21",
     "tailwindcss": "^4.1.14",
-    "tsx": "^4.21.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
   }
