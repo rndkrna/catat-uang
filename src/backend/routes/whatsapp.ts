@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import { db } from '../services/database.js';
 import { generatePassword, formatPhoneNumber } from '../utils/password.js';
 import { parseTransactionMessage, scanReceiptImage } from '../utils/parser.js';
-import { sendWhatsAppMessage, downloadWhatsAppMedia } from '../services/whatsapp.js';
+import { sendWhatsAppMessage, downloadWhatsAppMedia, verifyWhatsAppCredentials } from '../services/whatsapp.js';
 import { buildOCRReplyMessage } from '../utils/ocrValidator.js';
 
 const whatsappRouter = new Hono();
@@ -329,6 +329,12 @@ Ketik: \`saldo awal 1000000\`
     console.error('[WhatsApp] Webhook error:', err instanceof Error ? err.message : err);
     return c.json({ status: 'error' }, 200);
   }
+});
+
+// ─── Cek token & Phone Number ID (diagnostik) ─────────────────────────────
+whatsappRouter.get('/status', async (c) => {
+  const result = await verifyWhatsAppCredentials();
+  return c.json(result, result.ok ? 200 : 400);
 });
 
 // ─── Webhook GET (verifikasi dari Meta Dashboard) ─────────────────────────

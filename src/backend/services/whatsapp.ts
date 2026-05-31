@@ -1,5 +1,53 @@
 import axios from 'axios';
 
+function getWhatsAppCredentials() {
+  const id = process.env.WHATSAPP_PHONE_NUMBER_ID?.trim();
+  const accessToken = (process.env.WHATSAPP_ACCESS_TOKEN || process.env.WHATSAPP_API_KEY)?.trim();
+  return { id, accessToken };
+}
+
+/** Cek apakah token bisa akses Phone Number ID di Meta Graph API */
+export async function verifyWhatsAppCredentials(): Promise<{
+  ok: boolean;
+  phoneNumberId?: string;
+  displayPhoneNumber?: string;
+  verifiedName?: string;
+  error?: string;
+  code?: number;
+}> {
+  const { id, accessToken } = getWhatsAppCredentials();
+
+  if (!id || !accessToken) {
+    return { ok: false, error: 'WHATSAPP_PHONE_NUMBER_ID atau WHATSAPP_ACCESS_TOKEN kosong' };
+  }
+
+  try {
+    const url = `https://graph.facebook.com/v25.0/${id}`;
+    const response = await axios.get(url, {
+      params: { fields: 'display_phone_number,verified_name,code_verification_status' },
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    return {
+      ok: true,
+      phoneNumberId: id,
+      displayPhoneNumber: response.data.display_phone_number,
+      verifiedName: response.data.verified_name,
+    };
+  } catch (error: unknown) {
+    if (axios.isAxiosError(error)) {
+      const meta = (error.response?.data as { error?: { message?: string; code?: number } })?.error;
+      return {
+        ok: false,
+        phoneNumberId: id,
+        error: meta?.message ?? error.message,
+        code: meta?.code,
+      };
+    }
+    return { ok: false, phoneNumberId: id, error: String(error) };
+  }
+}
+
 function logMetaApiError(context: string, error: unknown): string {
   if (!axios.isAxiosError(error)) {
     const msg = error instanceof Error ? error.message : String(error);
@@ -23,8 +71,8 @@ function logMetaApiError(context: string, error: unknown): string {
 }
 
 export async function sendWhatsAppMessage(to: string, message: string, phoneNumberId?: string) {
-  const id = phoneNumberId ?? process.env.WHATSAPP_PHONE_NUMBER_ID;
-  const accessToken = process.env.WHATSAPP_ACCESS_TOKEN || process.env.WHATSAPP_API_KEY;
+  const { id: envId, accessToken } = getWhatsAppCredentials();
+  const id = phoneNumberId ?? envId;
 
   if (!id || !accessToken) {
     throw new Error('WhatsApp credentials missing (WHATSAPP_PHONE_NUMBER_ID / WHATSAPP_ACCESS_TOKEN)');
@@ -57,7 +105,7 @@ export async function sendWhatsAppMessage(to: string, message: string, phoneNumb
 }
 
 export async function downloadWhatsAppMedia(mediaId: string): Promise<{ buffer: Buffer, mimeType: string }> {
-  const accessToken = process.env.WHATSAPP_ACCESS_TOKEN || process.env.WHATSAPP_API_KEY;
+  const { accessToken } = getWhatsAppCredentials();
   
   if (!accessToken) {
     throw new Error('WhatsApp access token missing in .env');

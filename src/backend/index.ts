@@ -12,6 +12,7 @@ import paymentRoutes from './routes/payments.js';
 import adminRoutes from './routes/admin.js';
 import ocrRoutes from './routes/ocr.js';
 import { db } from './services/database.js';
+import { verifyWhatsAppCredentials } from './services/whatsapp.js';
 
 const app = new Hono();
 const port = Number(process.env.PORT) || 4000;
@@ -84,6 +85,14 @@ async function start() {
   } catch (err) {
     console.error('[Startup] Database connection FAILED:', err instanceof Error ? err.message : err);
     process.exit(1);
+  }
+
+  const wa = await verifyWhatsAppCredentials();
+  if (wa.ok) {
+    console.log(`[Startup] WhatsApp OK — ${wa.displayPhoneNumber} (${wa.verifiedName})`);
+  } else {
+    console.error(`[Startup] WhatsApp token INVALID — phone_number_id=${wa.phoneNumberId}`);
+    console.error(`[Startup] Meta error: ${wa.error} (code ${wa.code ?? '?'})`);
   }
 }
 
