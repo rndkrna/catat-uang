@@ -26,4 +26,5 @@ COPY src/backend ./src/backend
 COPY tsconfig.json ./
 
 # Railway injects PORT — listen via src/backend/index.ts
-CMD ["npx", "tsx", "src/backend/index.ts"]
+EXPOSE 8080
+CMD ["node", "--import", "tsx", "src/backend/index.ts"]

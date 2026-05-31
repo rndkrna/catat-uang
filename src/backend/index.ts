@@ -1,8 +1,9 @@
 import 'dotenv/config';
+import { createServer } from 'node:http';
 import { readFileSync } from 'fs';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import { serve } from '@hono/node-server';
+import { getRequestListener } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
 import authRoutes from './routes/auth.js';
 import transactionRoutes from './routes/transactions.js';
@@ -14,6 +15,11 @@ import { db } from './services/database.js';
 
 const app = new Hono();
 const port = Number(process.env.PORT) || 4000;
+
+app.use('*', async (c, next) => {
+  console.log(`[HTTP] ${c.req.method} ${c.req.path}`);
+  await next();
+});
 
 app.use('*', cors({
   origin: '*',
@@ -39,23 +45,37 @@ app.use('/assets/*', serveStatic({ root: './dist' }));
 app.use('/images/*', serveStatic({ root: './dist' }));
 app.use('/vite.svg', serveStatic({ root: './dist' }));
 
-app.get('*', (c) => {
+app.get('/', (c) => {
   try {
     const html = readFileSync('./dist/index.html', 'utf-8');
     return c.html(html);
   } catch {
-    return c.text('Frontend build not found. Please run build process.', 404);
+    return c.json({ status: 'ok', message: 'Tulis Duit API running' });
+  }
+});
+
+app.notFound((c) => {
+  try {
+    const html = readFileSync('./dist/index.html', 'utf-8');
+    return c.html(html);
+  } catch {
+    return c.json({ error: 'Not found' }, 404);
   }
 });
 
 async function start() {
-  // Server dulu — Railway healthcheck butuh respons cepat
-  serve({
-    fetch: app.fetch,
-    port,
-    hostname: '0.0.0.0',
-  }, (info) => {
-    console.log(`[Startup] Server listening on ${info.address}:${info.port} (PORT env=${process.env.PORT ?? 'not set'})`);
+  const listener = getRequestListener(app.fetch);
+
+  const server = createServer(listener);
+  server.listen(port, '0.0.0.0', () => {
+    const addr = server.address();
+    const bound = typeof addr === 'object' && addr ? `${addr.address}:${addr.port}` : String(port);
+    console.log(`[Startup] Server listening on ${bound} (PORT env=${process.env.PORT ?? 'not set'})`);
+  });
+
+  server.on('error', (err) => {
+    console.error('[Startup] Server error:', err);
+    process.exit(1);
   });
 
   try {
