@@ -1,16 +1,37 @@
 import axios from 'axios';
 
-export async function sendWhatsAppMessage(to: string, message: string) {
-  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+function logMetaApiError(context: string, error: unknown): string {
+  if (!axios.isAxiosError(error)) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error(`[WhatsApp] ${context}: ${msg}`);
+    return msg;
+  }
+
+  const status = error.response?.status;
+  const meta = (error.response?.data as { error?: { message?: string; code?: number; error_subcode?: number; type?: string } })?.error;
+
+  console.error(`[WhatsApp] ${context} — HTTP ${status ?? '?'}`);
+  if (meta) {
+    console.error(`  type   : ${meta.type ?? '-'}`);
+    console.error(`  code   : ${meta.code ?? '-'}${meta.error_subcode ? ` / sub ${meta.error_subcode}` : ''}`);
+    console.error(`  message: ${meta.message ?? '-'}`);
+    return meta.message ?? `Meta API error ${meta.code ?? status}`;
+  }
+
+  console.error(`  body:`, error.response?.data ?? error.message);
+  return error.message;
+}
+
+export async function sendWhatsAppMessage(to: string, message: string, phoneNumberId?: string) {
+  const id = phoneNumberId ?? process.env.WHATSAPP_PHONE_NUMBER_ID;
   const accessToken = process.env.WHATSAPP_ACCESS_TOKEN || process.env.WHATSAPP_API_KEY;
 
-  if (!phoneNumberId || !accessToken) {
-    console.error('WhatsApp credentials missing in .env');
-    return;
+  if (!id || !accessToken) {
+    throw new Error('WhatsApp credentials missing (WHATSAPP_PHONE_NUMBER_ID / WHATSAPP_ACCESS_TOKEN)');
   }
 
   try {
-    const url = `https://graph.facebook.com/v25.0/${phoneNumberId}/messages`;
+    const url = `https://graph.facebook.com/v25.0/${id}/messages`;
     const data = {
       messaging_product: 'whatsapp',
       recipient_type: 'individual',
@@ -29,9 +50,9 @@ export async function sendWhatsAppMessage(to: string, message: string) {
     });
 
     return response.data;
-  } catch (error: any) {
-    console.error('Error sending WhatsApp message:', error.response?.data || error.message);
-    throw error;
+  } catch (error: unknown) {
+    const msg = logMetaApiError(`Gagal kirim ke ${to} (phone_number_id=${id})`, error);
+    throw new Error(msg);
   }
 }
 
@@ -62,8 +83,8 @@ export async function downloadWhatsAppMedia(mediaId: string): Promise<{ buffer: 
       buffer: Buffer.from(downloadResponse.data),
       mimeType
     };
-  } catch (error: any) {
-    console.error('Error downloading WhatsApp media:', error.response?.data || error.message);
-    throw error;
+  } catch (error: unknown) {
+    const msg = logMetaApiError(`Gagal unduh media ${mediaId}`, error);
+    throw new Error(msg);
   }
 }

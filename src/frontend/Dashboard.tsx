@@ -328,7 +328,7 @@ export default function Dashboard() {
 
           {/* 4. WhatsApp CTA */}
           <a
-            href="https://wa.me/15556459494?text=Halo"
+            href="https://wa.me/6283187808427?text=Halo"
             target="_blank"
             rel="noopener noreferrer"
             className="block bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-4 hover:bg-orange-50 hover:border-orange-100 transition-colors"

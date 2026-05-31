@@ -377,7 +377,7 @@ export default function Settings() {
               
               {/* WhatsApp Bot */}
               <a
-                href="https://wa.me/15556459494"
+                href="https://wa.me/6283187808427"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center justify-between group hover:bg-gray-50 transition-colors"

@@ -36,7 +36,8 @@ COPY src/backend ./src/backend
 # Copy tsconfig
 COPY tsconfig.json ./
 
-# Expose port
+# Expose port (sesuai PORT env, default 4000 lokal / 3000 di docker-compose)
+ENV PORT=3000
 EXPOSE 3000
 
 # Start the application

@@ -52,7 +52,7 @@ app.get('*', (c) => {
 });
 
 // Start server
-const port = 4000;
+const port = Number(process.env.PORT) || 4000;
 console.log(`Server is running on http://localhost:${port}`);
 
 serve({

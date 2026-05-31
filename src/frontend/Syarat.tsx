@@ -139,7 +139,7 @@ export default function Syarat() {
               </p>
               <p className="text-gray-600">
                 <span className="font-medium">WhatsApp:</span>{' '}
-                <span className="text-orange-600">083844570735</span>
+                <span className="text-orange-600">083187808427</span>
               </p>
             </div>
           </section>

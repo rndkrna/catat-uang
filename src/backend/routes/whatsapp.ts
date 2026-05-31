@@ -30,29 +30,31 @@ ${txs.length > 0 ? `\n*5 Transaksi Terakhir:*\n${lines}${txs.length > 5 ? `\n...
 
 // ─── Webhook POST (terima pesan dari Meta) ────────────────────────────────
 whatsappRouter.post('/webhook', async (c) => {
-  const body = await c.req.json();
+  try {
+    const body = await c.req.json();
 
-  // Validasi: harus dari WhatsApp Business Account
-  if (body.object !== 'whatsapp_business_account') {
-    return c.json({ error: 'Invalid object' }, 400);
-  }
+    if (body.object !== 'whatsapp_business_account') {
+      return c.json({ error: 'Invalid object' }, 400);
+    }
 
-  const entry    = body.entry?.[0];
-  const changes  = entry?.changes?.[0];
-  const value    = changes?.value;
-  const msgObj   = value?.messages?.[0];
+    const entry    = body.entry?.[0];
+    const changes  = entry?.changes?.[0];
+    const value    = changes?.value;
+    const msgObj   = value?.messages?.[0];
 
-  // Abaikan jika bukan pesan (misal: status update)
-  if (!msgObj) {
-    return c.json({ status: 'no_message' });
-  }
+    if (!msgObj) {
+      console.log('[WhatsApp] Webhook diterima (status update, bukan pesan chat)');
+      return c.json({ status: 'no_message' });
+    }
 
-  const from      = msgObj.from;                          // e.g. "6283844570735"
-  const bodyText  = (msgObj.text?.body || '').trim();
-  const msgType   = msgObj.type;                          // "text" | "image" | dll
-  const phoneNumber = formatPhoneNumber(from);
+    const from           = msgObj.from;
+    const bodyText       = (msgObj.text?.body || '').trim();
+    const msgType        = msgObj.type;
+    const phoneNumber    = formatPhoneNumber(from);
+    const replyFromId    = value?.metadata?.phone_number_id as string | undefined;
+    const reply          = (text: string) => sendWhatsAppMessage(from, text, replyFromId);
 
-  console.log(`[WhatsApp] ${phoneNumber}: ${bodyText || `[${msgType}]`}`);
+    console.log(`[WhatsApp] Pesan masuk | from=${phoneNumber} | phone_number_id=${replyFromId ?? process.env.WHATSAPP_PHONE_NUMBER_ID} | isi="${bodyText || `[${msgType}]`}"`);
 
   // ── 1. AUTO REGISTRASI ─────────────────────────────────────────────────
   let user = await db.getUserByPhoneNumber(phoneNumber);
@@ -77,7 +79,7 @@ _Simpan password ini baik-baik ya!_
 
 Ketik *bantuan* untuk panduan cara mencatat.`;
 
-    await sendWhatsAppMessage(from, welcome);
+    await reply(welcome);
     return c.json({ status: 'user_created' });
   }
 
@@ -135,14 +137,14 @@ Ketik: \`saldo awal 1000000\`
 ━━━━━━━━━━━━━━━
 🌐 Dashboard: ${appUrl}`;
 
-    await sendWhatsAppMessage(from, help);
+    await reply( help);
     return c.json({ status: 'help_sent' });
   }
 
   // SALDO
   if (msg === 'saldo') {
     const balance = await db.getBalance(user.id);
-    await sendWhatsAppMessage(from, `💰 *Saldo Anda*\n\nSaldo saat ini: *${fmt(balance)}*\nTotal transaksi: ${allTx.length}`);
+    await reply( `💰 *Saldo Anda*\n\nSaldo saat ini: *${fmt(balance)}*\nTotal transaksi: ${allTx.length}`);
     return c.json({ status: 'saldo_sent' });
   }
 
@@ -150,7 +152,7 @@ Ketik: \`saldo awal 1000000\`
   if (msg === 'limit' || msg === 'kuota') {
     const paket = user.package || 'free';
     const sisa  = quota === Infinity ? '∞' : String(Math.max(0, quota - used));
-    await sendWhatsAppMessage(from,
+    await reply(
       `📦 *Kuota Bulan Ini*\n\nPaket: *${paket.toUpperCase()}*\nTerpakai: ${used} / ${quota === Infinity ? 'Unlimited' : quota}\nSisa: *${sisa}*`
     );
     return c.json({ status: 'limit_sent' });
@@ -159,7 +161,7 @@ Ketik: \`saldo awal 1000000\`
   // UPGRADE
   if (msg === 'upgrade' || msg === 'paket') {
     const appUrl = process.env.APP_URL || 'http://localhost:3000';
-    await sendWhatsAppMessage(from,
+    await reply(
       `⭐ *Upgrade Paket Tulis Duit*\n\n🆓 Free — Gratis (10 catatan/bln)\n⚡ Lite — Rp15.000/bln (200 catatan)\n✨ Starter — Rp29.000/bln (450 catatan)\n🛡️ Premium — Rp49.000/bln (1200 catatan)\n🚀 Pro — Rp99.000/bln (Unlimited)\n\n🔗 Pilih paket di:\n${appUrl}/pilih-paket`
     );
     return c.json({ status: 'upgrade_sent' });
@@ -168,7 +170,7 @@ Ketik: \`saldo awal 1000000\`
   // REKAP HARIAN
   if (['rekap', 'harian', 'hari ini', 'laporan'].includes(msg)) {
     const today = allTx.filter(t => new Date(t.createdAt).toDateString() === now.toDateString());
-    await sendWhatsAppMessage(from, summarize(today, 'Hari Ini'));
+    await reply( summarize(today, 'Hari Ini'));
     return c.json({ status: 'rekap_harian_sent' });
   }
 
@@ -177,13 +179,13 @@ Ketik: \`saldo awal 1000000\`
     const weekAgo = new Date(now);
     weekAgo.setDate(now.getDate() - 7);
     const weekly = allTx.filter(t => new Date(t.createdAt) >= weekAgo);
-    await sendWhatsAppMessage(from, summarize(weekly, '7 Hari Terakhir'));
+    await reply( summarize(weekly, '7 Hari Terakhir'));
     return c.json({ status: 'rekap_mingguan_sent' });
   }
 
   // REKAP BULANAN
   if (['bulanan', 'bulan', 'bulan ini'].includes(msg)) {
-    await sendWhatsAppMessage(from, summarize(thisMonth, 'Bulan Ini'));
+    await reply( summarize(thisMonth, 'Bulan Ini'));
     return c.json({ status: 'rekap_bulanan_sent' });
   }
 
@@ -195,12 +197,12 @@ Ketik: \`saldo awal 1000000\`
     const amount = parsed ? parsed.amount : parseInt(rawAmount.replace(/\D/g, ''), 10);
 
     if (!amount || isNaN(amount) || amount <= 0) {
-      await sendWhatsAppMessage(from, '⚠️ Format salah. Contoh: *saldo awal 1000000* atau *saldo awal 1jt*');
+      await reply( '⚠️ Format salah. Contoh: *saldo awal 1000000* atau *saldo awal 1jt*');
       return c.json({ status: 'invalid_amount' });
     }
 
     await db.createTransaction({ userId: user.id, type: 'income', amount, category: 'Saldo Awal', description: 'Inisialisasi saldo awal' });
-    await sendWhatsAppMessage(from, `✅ Saldo awal berhasil diatur: *${fmt(amount)}*`);
+    await reply( `✅ Saldo awal berhasil diatur: *${fmt(amount)}*`);
     return c.json({ status: 'initial_balance_set' });
   }
 
@@ -210,7 +212,7 @@ Ketik: \`saldo awal 1000000\`
     if (balance > 0) {
       await db.createTransaction({ userId: user.id, type: 'expense', amount: balance, category: 'Reset', description: 'Reset saldo ke 0' });
     }
-    await sendWhatsAppMessage(from, `♻️ Saldo berhasil direset ke Rp 0.`);
+    await reply( `♻️ Saldo berhasil direset ke Rp 0.`);
     return c.json({ status: 'reset_done' });
   }
 
@@ -218,7 +220,7 @@ Ketik: \`saldo awal 1000000\`
   // Cek kuota terlebih dulu
   if (used >= quota) {
     const appUrl = process.env.APP_URL || 'http://localhost:3000';
-    await sendWhatsAppMessage(from,
+    await reply(
       `🚫 *Kuota Habis!*\n\nKamu telah menggunakan ${used}/${quota} catatan bulan ini.\n\n⭐ Upgrade untuk kuota lebih banyak:\n${appUrl}/pilih-paket`
     );
     return c.json({ status: 'quota_exceeded' });
@@ -226,7 +228,7 @@ Ketik: \`saldo awal 1000000\`
 
   // ── Proses gambar struk dengan OCR Pipeline baru ─────────────────────────
   if (msgType === 'image' && msgObj.image?.id) {
-    await sendWhatsAppMessage(from, `🖼️ _Sedang memindai struk... Mohon tunggu sebentar_ 🔍`);
+    await reply( `🖼️ _Sedang memindai struk... Mohon tunggu sebentar_ 🔍`);
 
     // Unduh gambar
     let mediaBuffer: Buffer;
@@ -234,7 +236,7 @@ Ketik: \`saldo awal 1000000\`
       const media = await downloadWhatsAppMedia(msgObj.image.id);
       mediaBuffer = media.buffer;
     } catch (e) {
-      await sendWhatsAppMessage(from, `❌ Gagal mengunduh gambar struk. Coba lagi nanti.`);
+      await reply( `❌ Gagal mengunduh gambar struk. Coba lagi nanti.`);
       return c.json({ status: 'media_download_failed' });
     }
 
@@ -252,14 +254,14 @@ Ketik: \`saldo awal 1000000\`
       hint += `• Pastikan pencahayaan cukup\n`;
       hint += `• Hindari bayangan di atas struk\n`;
       if (retryCount > 0) hint += `\n_(Sudah dicoba ${retryCount}x retry OCR)_`;
-      await sendWhatsAppMessage(from, hint);
+      await reply( hint);
       return c.json({ status: 'ocr_failed', reason: failMsg });
     }
 
     // Cek kuota sebelum simpan
     if (used >= quota) {
       const appUrl = process.env.APP_URL || 'http://localhost:3000';
-      await sendWhatsAppMessage(from,
+      await reply(
         `🚫 *Kuota Habis!*\n\nKamu telah menggunakan ${used}/${quota} catatan bulan ini.\n\n⭐ Upgrade untuk kuota lebih banyak:\n${appUrl}/pilih-paket`
       );
       return c.json({ status: 'quota_exceeded' });
@@ -280,7 +282,7 @@ Ketik: \`saldo awal 1000000\`
       const balance = await db.getBalance(user.id);
       const sisaKuota = quota === Infinity ? '∞' : String(quota - used - ocrTxs.length);
       const replyMsg = buildOCRReplyMessage(validation, balance, sisaKuota);
-      await sendWhatsAppMessage(from, replyMsg);
+      await reply( replyMsg);
       return c.json({ status: 'ocr_saved', merchant, confidence: validation.confidence, retryCount });
     }
   }
@@ -291,7 +293,7 @@ Ketik: \`saldo awal 1000000\`
   if (transactions && transactions.length > 0) {
     // Cek apakah sisa kuota cukup untuk menyimpan semua transaksi
     if (quota !== Infinity && used + transactions.length > quota) {
-      await sendWhatsAppMessage(from, `🚫 *Gagal mencatat!*\nKamu mencoba mencatat ${transactions.length} transaksi sekaligus, tapi sisa kuota kamu bulan ini hanya tinggal ${quota - used} catatan.`);
+      await reply( `🚫 *Gagal mencatat!*\nKamu mencoba mencatat ${transactions.length} transaksi sekaligus, tapi sisa kuota kamu bulan ini hanya tinggal ${quota - used} catatan.`);
       return c.json({ status: 'quota_exceeded_multi' });
     }
 
@@ -316,13 +318,17 @@ Ketik: \`saldo awal 1000000\`
     replyLines.push(`\n💰 Saldo sekarang: *${fmt(balance)}*`);
     replyLines.push(`📦 Sisa kuota: ${sisaKuota}`);
 
-    await sendWhatsAppMessage(from, replyLines.join('\n'));
+    await reply( replyLines.join('\n'));
     return c.json({ status: 'transaction_saved_ai' });
   }
 
   // Default: pesan tidak dikenali
-  await sendWhatsAppMessage(from, `Maaf, saya tidak menemukan catatan keuangan di pesan itu. 🤔\n\nKetik *bantuan* untuk melihat panduan.`);
+  await reply(`Maaf, saya tidak menemukan catatan keuangan di pesan itu. 🤔\n\nKetik *bantuan* untuk melihat panduan.`);
   return c.json({ status: 'default_sent' });
+  } catch (err) {
+    console.error('[WhatsApp] Webhook error:', err instanceof Error ? err.message : err);
+    return c.json({ status: 'error' }, 200);
+  }
 });
 
 // ─── Webhook GET (verifikasi dari Meta Dashboard) ─────────────────────────

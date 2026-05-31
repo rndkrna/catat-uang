@@ -38,7 +38,7 @@ export default function MenungguKonfirmasi() {
               <p className="text-sm font-bold text-orange-900 mb-1">Ingin proses lebih cepat?</p>
               <p className="text-xs text-orange-700 mb-3">Anda bisa menghubungi admin via WhatsApp dengan melampirkan bukti transfer.</p>
               <button 
-                onClick={() => window.open('https://wa.me/15556459494?text=Halo%20Admin,%20saya%20sudah%20melakukan%20pembayaran%20untuk%20berlangganan.%20Tolong%20dicek%20ya!', '_blank')}
+                onClick={() => window.open('https://wa.me/6283187808427?text=Halo%20Admin,%20saya%20sudah%20melakukan%20pembayaran%20untuk%20berlangganan.%20Tolong%20dicek%20ya!', '_blank')}
                 className="text-xs font-black bg-orange-500 text-white px-4 py-2 rounded-xl hover:bg-orange-600 transition-colors"
               >
                 Chat Admin Sekarang

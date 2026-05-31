@@ -163,7 +163,7 @@ export default function Login() {
             <p className="text-sm text-gray-600">
               Belum punya akun?{' '}
               <a
-                href="https://wa.me/15556459494?text=Halo%2C+saya+ingin+daftar+Tulis+Duit"
+                href="https://wa.me/6283187808427?text=Halo%2C+saya+ingin+daftar+Tulis+Duit"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-orange-600 hover:text-orange-700 font-medium"
@@ -205,7 +205,7 @@ export default function Login() {
             </div>
             <div className="flex items-center gap-3">
               <span className="text-gray-500 w-20 shrink-0">Telepon:</span>
-              <a href="tel:083844570735" className="text-orange-600">083844570735</a>
+              <a href="tel:083187808427" className="text-orange-600">083187808427</a>
             </div>
             <div className="flex items-center gap-3">
               <span className="text-gray-500 w-20 shrink-0">Alamat:</span>

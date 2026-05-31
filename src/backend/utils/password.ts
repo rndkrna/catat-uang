@@ -31,5 +31,5 @@ export function maskPassword(password: string): string {
 }
 
 // Example: generatePassword() -> "aB3dE5fG"
-// Example: formatPhoneNumber("083844570735") -> "6283844570735"
-// Example: formatPhoneNumber("+6283844570735") -> "6283844570735"
+// Example: formatPhoneNumber("083187808427") -> "6283187808427"
+// Example: formatPhoneNumber("+6283187808427") -> "6283187808427"

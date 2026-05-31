@@ -11,7 +11,8 @@
     "lint": "tsc --noEmit",
     "test": "node --import tsx --test \"src/**/*.test.ts\"",
     "backend": "tsx --watch src/backend/index.ts",
-    "dev:full": "node start-dev.js"
+    "dev:full": "node start-dev.js",
+    "full": "npm run dev:full"
   },
   "dependencies": {
     "@hono/node-server": "^2.0.0",
