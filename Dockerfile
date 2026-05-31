@@ -9,8 +9,12 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-# Production stage
+# Production stage — node:20-slim + libvips untuk sharp (OCR struk)
 FROM node:20-slim AS runner
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libvips42 \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -21,5 +25,5 @@ COPY --from=builder /app/dist ./dist
 COPY src/backend ./src/backend
 COPY tsconfig.json ./
 
-# Platform deploy (Railway/Render) injects PORT — jangan hardcode
-CMD ["npm", "start"]
+# Railway injects PORT — listen via src/backend/index.ts
+CMD ["npx", "tsx", "src/backend/index.ts"]

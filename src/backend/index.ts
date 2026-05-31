@@ -49,22 +49,31 @@ app.get('*', (c) => {
 });
 
 async function start() {
-  try {
-    await db.connect();
-    console.log(`[Startup] Database connected`);
-  } catch (err) {
-    console.error('[Startup] Database connection FAILED:', err instanceof Error ? err.message : err);
-    process.exit(1);
-  }
-
+  // Server dulu — Railway healthcheck butuh respons cepat
   serve({
     fetch: app.fetch,
     port,
     hostname: '0.0.0.0',
+  }, (info) => {
+    console.log(`[Startup] Server listening on ${info.address}:${info.port} (PORT env=${process.env.PORT ?? 'not set'})`);
   });
 
-  console.log(`[Startup] Server running on 0.0.0.0:${port} (PORT env=${process.env.PORT ?? 'not set'})`);
+  try {
+    await db.connect();
+    console.log('[Startup] Database connected');
+  } catch (err) {
+    console.error('[Startup] Database connection FAILED:', err instanceof Error ? err.message : err);
+    process.exit(1);
+  }
 }
+
+process.on('uncaughtException', (err) => {
+  console.error('[Fatal] uncaughtException:', err);
+});
+
+process.on('unhandledRejection', (err) => {
+  console.error('[Fatal] unhandledRejection:', err);
+});
 
 start().catch((err) => {
   console.error('[Startup] Fatal error:', err);
