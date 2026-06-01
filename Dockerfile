@@ -25,6 +25,6 @@ COPY --from=builder /app/dist ./dist
 COPY src/backend ./src/backend
 COPY tsconfig.json ./
 
-# Railway injects PORT — listen via src/backend/index.ts
-EXPOSE 8080
+# Expose port 4000 (Hono server default port)
+EXPOSE 4000
 CMD ["node", "--import", "tsx", "src/backend/index.ts"]
