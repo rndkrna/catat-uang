@@ -109,6 +109,103 @@ export async function ocrWithRetry(imageBuffer: Buffer): Promise<{
   extraction: MerchantExtractionResult;
   validation: ValidationResult;
 }> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (apiKey && apiKey !== 'MY_GEMINI_API_KEY' && apiKey !== '') {
+    try {
+      console.log('[OCR] Mencoba memindai struk menggunakan Gemini AI...');
+      const base64Image = imageBuffer.toString('base64');
+      
+      const prompt = `Analisis gambar struk belanja ini. Ekstrak data berikut:
+1. Nama merchant/toko (merchant).
+2. Tanggal transaksi (date) format DD-MM-YYYY.
+3. Total nominal pembayaran (amount) sebagai angka murni (tanpa rupiah/titik/koma, contoh: 45000).
+4. Kategori pengeluaran (category), pilih salah satu kategori yang paling cocok: Makanan, Transportasi, Belanja, Kesehatan, Hiburan, Pendidikan, atau Lainnya.
+
+Kembalikan jawaban HANYA berupa objek JSON dengan format persis seperti ini:
+{
+  "merchant": "Nama Toko",
+  "date": "DD-MM-YYYY",
+  "amount": 45000,
+  "category": "Kategori",
+  "isValid": true,
+  "failReason": null
+}
+Jika gambar bukan struk belanja yang valid atau nominal total tidak terbaca, set "isValid" menjadi false dan isi "failReason" dengan alasannya (dalam bahasa Indonesia).`;
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                { text: prompt },
+                {
+                  inlineData: {
+                    mimeType: 'image/jpeg',
+                    data: base64Image
+                  }
+                }
+              ]
+            }
+          ],
+          generationConfig: {
+            responseMimeType: 'application/json'
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
+      }
+
+      const resJson = (await response.json()) as any;
+      const rawText = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
+      
+      if (rawText) {
+        console.log('[OCR] Gemini AI Response:', rawText);
+        const parsed = JSON.parse(rawText.trim());
+        
+        const validation: ValidationResult = {
+          isValid: parsed.isValid ?? true,
+          confidence: parsed.isValid ? 98 : 0,
+          amount: parsed.amount ?? 0,
+          category: parsed.category ?? 'Lainnya',
+          merchant: parsed.merchant ?? null,
+          date: parsed.date ?? null,
+          noStruk: null,
+          warnings: [],
+          needsRetry: false,
+          failReason: parsed.failReason ?? undefined
+        };
+
+        const extraction: MerchantExtractionResult = {
+          merchant: parsed.merchant ?? null,
+          template: null,
+          total: parsed.amount ?? 0,
+          subtotal: parsed.amount ?? 0,
+          tax: 0,
+          discount: 0,
+          date: parsed.date ?? null,
+          noStruk: null,
+          category: parsed.category ?? 'Lainnya'
+        };
+
+        return {
+          text: `Gemini AI Scan. Merchant: ${parsed.merchant}, Total: ${parsed.amount}`,
+          confidence: 98,
+          retryCount: 0,
+          extraction,
+          validation
+        };
+      }
+    } catch (error: any) {
+      console.error('[OCR] Gemini AI gagal, beralih ke Tesseract (Local OCR):', error.message || error);
+    }
+  }
+
   let bestText = '';
   let bestConfidence = 0;
   let retryCount = 0;
