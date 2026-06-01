@@ -139,7 +139,9 @@ export default function PaketDashboard() {
             <p className="text-slate-500 text-sm leading-relaxed mb-6">
               Tambahkan nomor WhatsApp pasangan atau anggota tim agar mereka bisa ikut mencatat pemasukan dan pengeluaran secara tersinkronisasi.
             </p>
-            <button className={`w-full py-3 rounded-xl font-bold text-sm bg-slate-50 text-slate-700 hover:${theme.primary} hover:text-white transition-colors border border-slate-200 hover:border-transparent`}>
+            <button 
+              onClick={() => navigate('/dashboard')}
+              className={`w-full py-3 rounded-xl font-bold text-sm bg-slate-50 text-slate-700 hover:${theme.primary} hover:text-white transition-colors border border-slate-200 hover:border-transparent`}>
               Kelola Anggota Tim
             </button>
           </div>

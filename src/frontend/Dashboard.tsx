@@ -42,8 +42,15 @@ export default function Dashboard() {
   const [error, setError] = useState('');
   
   // Partner state
-  const [partnerPhoneInput, setPartnerPhoneInput] = useState('');
+  const [partnerPhones, setPartnerPhones] = useState<string[]>([]);
   const [isSavingPartner, setIsSavingPartner] = useState(false);
+
+  const maxPartnersMap: Record<string, number> = {
+    starter: 1,
+    premium: 2,
+    pro: 4
+  };
+  const maxPartners = user ? (maxPartnersMap[user.package] || 0) : 0;
 
   // Format Rupiah
   const fmt = (n: number) =>
@@ -107,6 +114,11 @@ export default function Dashboard() {
 
   const handleSavePartner = async () => {
     setIsSavingPartner(true);
+    const cleanPhones = partnerPhones
+      .map(p => p.trim())
+      .filter(p => p.length > 0)
+      .join(',');
+
     try {
       const token = localStorage.getItem('token');
       const res = await fetch('/api/auth/partner', {
@@ -115,12 +127,11 @@ export default function Dashboard() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ partnerPhone: partnerPhoneInput })
+        body: JSON.stringify({ partnerPhone: cleanPhones })
       });
       const resData = await res.json();
       if (resData.success) {
-        alert('Sukses menyimpan nomor pasangan!');
-        // Update local user state
+        alert('Sukses menyimpan nomor pasangan/tim!');
         setUser({ ...user, partnerPhone: resData.partnerPhone });
         localStorage.setItem('user', JSON.stringify({ ...user, partnerPhone: resData.partnerPhone }));
       } else {
@@ -140,7 +151,12 @@ export default function Dashboard() {
     } else {
       const parsedUser = JSON.parse(savedUser);
       setUser(parsedUser);
-      setPartnerPhoneInput(parsedUser.partnerPhone || '');
+      
+      const phones = parsedUser.partnerPhone ? parsedUser.partnerPhone.split(',') : [];
+      const currentMaxPartners = maxPartnersMap[parsedUser.package] || 0;
+      const initialPhones = Array.from({ length: currentMaxPartners }, (_, idx) => phones[idx] || '');
+      setPartnerPhones(initialPhones);
+
       // Jika dummy token, skip fetch dan tampilkan data kosong
       if (token === 'dummy-token-123') {
         setData({ balance: 0, totalIncome: 0, totalExpense: 0, todayIncome: 0, todayExpense: 0, todayCount: 0, transactions: [] });
@@ -353,36 +369,47 @@ export default function Dashboard() {
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
                   <Users size={16} className="text-orange-500" />
-                  Kelola Akun Pasangan
+                  {maxPartners === 1 ? 'Kelola Akun Pasangan' : 'Kelola Anggota Tim'}
                 </h3>
                 <span className="text-[10px] font-bold text-orange-500 bg-orange-50 px-2 py-0.5 rounded-full">Aktif</span>
               </div>
               <p className="text-xs text-gray-500 mb-4">
-                Masukkan nomor WhatsApp pasangan Anda. Segala ketikan pengeluaran dari nomor ini akan otomatis memotong saldo gabungan ini.
+                {maxPartners === 1
+                  ? 'Masukkan nomor WhatsApp pasangan Anda. Segala pencatatan transaksi dari nomor ini akan otomatis memotong saldo bersama Anda.'
+                  : `Masukkan hingga ${maxPartners} nomor WhatsApp anggota tim Anda. Segala pencatatan transaksi dari nomor-nomor ini akan terpusat ke saldo Anda.`}
               </p>
               
               <div className="space-y-3">
-                <div>
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Nomor WA Pasangan</label>
-                  <input
-                    type="text"
-                    placeholder="Contoh: 628123456789"
-                    value={partnerPhoneInput}
-                    onChange={(e) => setPartnerPhoneInput(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all"
-                  />
-                </div>
+                {partnerPhones.map((phone, idx) => (
+                  <div key={idx}>
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">
+                      {maxPartners === 1 ? 'Nomor WA Pasangan' : `Nomor WA Anggota #${idx + 1}`}
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Contoh: 628123456789"
+                      value={phone}
+                      onChange={(e) => {
+                        const updated = [...partnerPhones];
+                        updated[idx] = e.target.value;
+                        setPartnerPhones(updated);
+                      }}
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all"
+                    />
+                  </div>
+                ))}
+                
                 <button 
                   onClick={handleSavePartner}
                   disabled={isSavingPartner}
                   className="w-full py-2.5 bg-orange-500 text-white rounded-xl text-xs font-bold hover:bg-orange-600 transition-colors shadow-md shadow-orange-100 disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {isSavingPartner && <Loader2 size={14} className="animate-spin" />}
-                  {isSavingPartner ? 'Menyimpan...' : 'Simpan Nomor Pasangan'}
+                  {isSavingPartner ? 'Menyimpan...' : maxPartners === 1 ? 'Simpan Nomor Pasangan' : 'Simpan Anggota Tim'}
                 </button>
                 {user.partnerPhone && (
                   <p className="text-[10px] text-green-600 font-medium text-center bg-green-50 p-2 rounded-lg">
-                    Nomor {user.partnerPhone} saat ini terhubung. Pasangan Anda dapat langsung mencatat transaksi via WhatsApp!
+                    Nomor {user.partnerPhone.split(',').join(', ')} saat ini terhubung. Pasangan/anggota tim Anda dapat langsung mencatat transaksi via WhatsApp!
                   </p>
                 )}
               </div>

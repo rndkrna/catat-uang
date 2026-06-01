@@ -160,11 +160,31 @@ authRouter.post('/partner', async (c) => {
     return c.json({ success: false, message: 'Fitur Akun Pasangan hanya tersedia untuk paket Starter, Premium, dan Pro.' }, 403);
   }
 
-  // Set to null if empty string
-  const newPhone = partnerPhone && partnerPhone.trim() !== '' ? partnerPhone.trim() : null;
+  // Parse, clean, and filter multiple phones
+  const phones = partnerPhone
+    ? partnerPhone.split(',')
+        .map((p: string) => p.replace(/\D/g, '').trim())
+        .filter((p: string) => p.length > 0)
+    : [];
+
+  const maxPartnersMap: Record<string, number> = {
+    starter: 1,
+    premium: 2,
+    pro: 4
+  };
+  const maxPartners = maxPartnersMap[user.package] || 0;
+
+  if (phones.length > maxPartners) {
+    return c.json({
+      success: false,
+      message: `Paket ${user.package.toUpperCase()} hanya mendukung maksimal ${maxPartners} nomor pasangan/tim.`
+    }, 400);
+  }
+
+  const cleanPartnerPhone = phones.length > 0 ? phones.join(',') : null;
   
-  await db.updatePartnerPhone(userId, newPhone);
-  return c.json({ success: true, message: 'Nomor pasangan berhasil diperbarui', partnerPhone: newPhone });
+  await db.updatePartnerPhone(userId, cleanPartnerPhone);
+  return c.json({ success: true, message: 'Nomor pasangan berhasil diperbarui', partnerPhone: cleanPartnerPhone });
 });
 
 export default authRouter;

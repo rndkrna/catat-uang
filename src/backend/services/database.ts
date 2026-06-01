@@ -69,7 +69,7 @@ class DatabaseService {
     const { data: primaryUser } = await this.client
       .from('users')
       .select('*')
-      .eq('partnerPhone', phoneNumber)
+      .or(`partnerPhone.eq.${phoneNumber},partnerPhone.like.%,${phoneNumber},partnerPhone.like.${phoneNumber},%,partnerPhone.like.%,${phoneNumber},%`)
       .maybeSingle();
     
     if (primaryUser) {
@@ -99,7 +99,11 @@ class DatabaseService {
     const partnerToPackageMap = new Map<string, string>();
     users.forEach(u => {
       if (u.partnerPhone) {
-        partnerToPackageMap.set(u.partnerPhone, u.package);
+        const phones = u.partnerPhone.split(',');
+        phones.forEach(p => {
+          const trimmed = p.trim();
+          if (trimmed) partnerToPackageMap.set(trimmed, u.package);
+        });
       }
     });
     
