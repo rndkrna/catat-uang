@@ -132,7 +132,7 @@ Kembalikan jawaban HANYA berupa objek JSON dengan format persis seperti ini:
 }
 Jika gambar bukan struk belanja yang valid atau nominal total tidak terbaca, set "isValid" menjadi false dan isi "failReason" dengan alasannya (dalam bahasa Indonesia).`;
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
