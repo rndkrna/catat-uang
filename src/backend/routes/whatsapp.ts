@@ -315,8 +315,6 @@ Ketik: \`saldo awal 1000000\`
       return c.json({ status: 'quota_exceeded_multi' });
     }
 
-    let replyLines = [`🤖 *Berhasil dicatat otomatis* ✅\n`];
-
     for (const trx of transactions) {
       await db.createTransaction({
         userId: user.id,
@@ -325,18 +323,31 @@ Ketik: \`saldo awal 1000000\`
         category: trx.category,
         description: trx.description,
       });
-
-      const icon = trx.type === 'income' ? '📈 Pemasukan' : '📉 Pengeluaran';
-      replyLines.push(`• ${icon}: *${fmt(trx.amount)}* (${trx.category})`);
     }
 
-    const balance  = await db.getBalance(user.id);
-    const sisaKuota = quota === Infinity ? '∞' : String(quota - used - transactions.length);
+    const balance = await db.getBalance(user.id);
+    const updatedTxs = await db.getTransactions(user.id);
+    const now = new Date();
+    const todayTxs = updatedTxs.filter(t => new Date(t.createdAt).toDateString() === now.toDateString());
 
-    replyLines.push(`\n💰 Saldo sekarang: *${fmt(balance)}*`);
-    replyLines.push(`📦 Sisa kuota: ${sisaKuota}`);
+    const incomeToday = todayTxs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+    const expenseToday = todayTxs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
 
-    await reply( replyLines.join('\n'));
+    const count = transactions.length;
+    const statusText = count === 1 ? 'sudah tercatat' : 'berhasil dicatat';
+
+    const replyText = [
+      `✅ Mantap! ${count} transaksi ${statusText} 💰`,
+      ``,
+      `💰 Saldo sekarang`,
+      `${fmt(balance)}`,
+      `📈 Pemasukan hari ini`,
+      `${fmt(incomeToday)}`,
+      `📉 Pengeluaran hari ini`,
+      `${fmt(expenseToday)}`
+    ].join('\n');
+
+    await reply(replyText);
     return c.json({ status: 'transaction_saved_ai' });
   }
 
