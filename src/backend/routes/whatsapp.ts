@@ -15,12 +15,15 @@ function toSmallCaps(text: string): string {
     'A': 'ᴀ', 'B': 'ʙ', 'C': 'ᴄ', 'D': 'ᴅ', 'E': 'ᴇ', 'F': 'ғ', 'G': 'ɢ', 'H': 'ʜ', 'I': 'ɪ', 'J': 'ᴊ', 'K': 'ᴋ', 'L': 'ʟ', 'M': 'ᴍ', 'N': 'ɴ', 'O': 'ᴏ', 'P': 'ᴘ', 'Q': 'ǫ', 'R': 'ʀ', 'S': 'ꜱ', 'T': 'ᴛ', 'U': 'ᴜ', 'V': 'ᴠ', 'W': 'ᴡ', 'X': 'x', 'Y': 'ʏ', 'Z': 'ᴢ'
   };
 
-  const regex = /(https?:\/\/[^\s]+|`[^`]+`)/gi;
+  const regex = /(https?:\/\/[^\s]+|`[^`]+`|\{\{[^\}]+\}\})/gi;
   const parts = text.split(regex);
   
   return parts.map(part => {
     if (part.startsWith('http') || part.startsWith('`')) {
       return part;
+    }
+    if (part.startsWith('{{') && part.endsWith('}}')) {
+      return part.slice(2, -2);
     }
     return part.split('').map(char => smallCapsMap[char] || char).join('');
   }).join('');
@@ -121,39 +124,36 @@ Ketik *bantuan* untuk panduan cara mencatat.`;
   // BANTUAN / HALO
   if (['halo', 'hi', 'hello', 'help', 'bantuan', 'start'].includes(msg)) {
     const appUrl = process.env.APP_URL || 'http://localhost:3000';
-    const help = `📖 *Panduan Tulis Duit*
+    const help = `📖 *Panduan Tulis Duit ✨*
 
-━━━━━━━━━━━━━━━
 💰 *Set Saldo Awal*
-Ketik: \`saldo awal 1000000\`
+Ketik: {{saldo awal 1000000}}
 
-━━━━━━━━━━━━━━━
 📝 *Format Pencatatan*
 
-📉 Pengeluaran:
-• \`10k jajan kopi\`
-• \`-20k makan siang\`
-• \`15rb bensin\`
+📉 *Pengeluaran*
+• {{10k jajan kopi}}
+• {{-20k makan siang}}
+• {{15rb bensin}}
 
-📈 Pemasukan:
-• \`+5jt gaji\`
-• \`+750rb bonus\`
+📈 *Pemasukan*
+• {{+5jt gaji}}
+• {{+750rb bonus}}
 
-📷 Kirim *foto struk* untuk catat otomatis
+📷 *Kirim foto struk untuk catat otomatis*
 
-━━━━━━━━━━━━━━━
 📊 *Perintah*
 
-• \`saldo\` — cek saldo
-• \`harian\` / \`rekap\` — hari ini
-• \`mingguan\` — 7 hari terakhir
-• \`bulanan\` — bulan ini
-• \`limit\` — sisa kuota
-• \`upgrade\` — lihat paket
-• \`bantuan\` — panduan ini
+• {{saldo}} → cek saldo
+• {{harian}} / {{rekap}} → hari ini
+• {{mingguan}} → 7 hari terakhir
+• {{bulanan}} → bulan ini
+• {{limit}} → sisa kuota
+• {{upgrade}} → lihat paket
+• {{bantuan}} → panduan ini
 
-━━━━━━━━━━━━━━━
-🌐 Dashboard: ${appUrl}`;
+🌐 *Dashboard*
+${appUrl}`;
 
     await reply( help);
     return c.json({ status: 'help_sent' });
