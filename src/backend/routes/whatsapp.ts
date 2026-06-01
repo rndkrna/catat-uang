@@ -8,6 +8,24 @@ import { buildOCRReplyMessage } from '../utils/ocrValidator.js';
 
 const whatsappRouter = new Hono();
 
+// ─── Helper: Mengubah alfabet menjadi Unicode Small Caps ───────────────────
+function toSmallCaps(text: string): string {
+  const smallCapsMap: Record<string, string> = {
+    'a': 'ᴀ', 'b': 'ʙ', 'c': 'ᴄ', 'd': 'ᴅ', 'e': 'ᴇ', 'f': 'ғ', 'g': 'ɢ', 'h': 'ʜ', 'i': 'ɪ', 'j': 'ᴊ', 'k': 'ᴋ', 'l': 'ʟ', 'm': 'ᴍ', 'n': 'ɴ', 'o': 'ᴏ', 'p': 'ᴘ', 'q': 'ǫ', 'r': 'ʀ', 's': 'ꜱ', 't': 'ᴛ', 'u': 'ᴜ', 'v': 'ᴠ', 'w': 'ᴡ', 'x': 'x', 'y': 'ʏ', 'z': 'ᴢ',
+    'A': 'ᴀ', 'B': 'ʙ', 'C': 'ᴄ', 'D': 'ᴅ', 'E': 'ᴇ', 'F': 'ғ', 'G': 'ɢ', 'H': 'ʜ', 'I': 'ɪ', 'J': 'ᴊ', 'K': 'ᴋ', 'L': 'ʟ', 'M': 'ᴍ', 'N': 'ɴ', 'O': 'ᴏ', 'P': 'ᴘ', 'Q': 'ǫ', 'R': 'ʀ', 'S': 'ꜱ', 'T': 'ᴛ', 'U': 'ᴜ', 'V': 'ᴠ', 'W': 'ᴡ', 'X': 'x', 'Y': 'ʏ', 'Z': 'ᴢ'
+  };
+
+  const regex = /(https?:\/\/[^\s]+|`[^`]+`)/gi;
+  const parts = text.split(regex);
+  
+  return parts.map(part => {
+    if (part.startsWith('http') || part.startsWith('`')) {
+      return part;
+    }
+    return part.split('').map(char => smallCapsMap[char] || char).join('');
+  }).join('');
+}
+
 // ─── Helper: format Rupiah ─────────────────────────────────────────────────
 const fmt = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n);
@@ -52,7 +70,7 @@ whatsappRouter.post('/webhook', async (c) => {
     const msgType        = msgObj.type;
     const phoneNumber    = formatPhoneNumber(from);
     const replyFromId    = value?.metadata?.phone_number_id as string | undefined;
-    const reply          = (text: string) => sendWhatsAppMessage(from, text, replyFromId);
+    const reply          = (text: string) => sendWhatsAppMessage(from, toSmallCaps(text), replyFromId);
 
     console.log(`[WhatsApp] Pesan masuk | from=${phoneNumber} | phone_number_id=${replyFromId ?? process.env.WHATSAPP_PHONE_NUMBER_ID} | isi="${bodyText || `[${msgType}]`}"`);
 
