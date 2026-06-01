@@ -196,7 +196,7 @@ export default function PilihPaket() {
           <motion.h1 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-5xl md:text-6xl font-black text-slate-900 tracking-tight mb-6"
+            className="text-3xl sm:text-5xl md:text-6xl font-black text-slate-900 tracking-tight mb-6"
           >
             Pilih Paket <span className="bg-clip-text text-transparent bg-gradient-to-r from-orange-600 to-orange-400">Terbaik Anda</span>
           </motion.h1>
@@ -204,14 +204,13 @@ export default function PilihPaket() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-lg text-slate-500 font-medium max-w-2xl mx-auto mb-10"
-          
+            className="text-base sm:text-lg text-slate-500 font-medium max-w-2xl mx-auto mb-10"
           >
             Mulai dari pencatatan harian hingga manajemen keuangan keluarga profesional. Bebas pilih sesuai kebutuhan Anda.
           </motion.p>
 
           {/* Period Switcher */}
-          <div className="inline-flex p-1.5 bg-slate-100/80 backdrop-blur-sm rounded-2xl border border-slate-200/50 mb-12">
+          <div className="flex flex-col sm:inline-flex sm:flex-row p-1.5 bg-slate-100/80 backdrop-blur-sm rounded-2xl border border-slate-200/50 mb-12 w-full sm:w-auto max-w-sm sm:max-w-none mx-auto gap-1 sm:gap-0">
             {[
               { id: 'monthly', label: '1 Bulan', tag: 'Hemat 10%' },
               { id: 'quarterly', label: '3 Bulan', tag: 'Hemat 15%' },
@@ -220,7 +219,7 @@ export default function PilihPaket() {
               <button
                 key={period.id}
                 onClick={() => setSelectedPeriod(period.id as any)}
-                className={`relative px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 ${
+                className={`relative px-4 sm:px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center justify-center gap-2 w-full sm:w-auto ${
                   selectedPeriod === period.id ? 'text-white' : 'text-slate-500 hover:text-slate-700'
                 }`}
               >
@@ -285,16 +284,16 @@ export default function PilihPaket() {
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
                 className="relative w-full max-w-lg bg-white rounded-[32px] shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto"
               >
-                <div className="p-8">
+                <div className="p-6 sm:p-8">
                   {/* Modal Header */}
-                  <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-start justify-between gap-4 mb-8">
                     <div>
-                      <h2 className="text-2xl font-black text-slate-900">Pembayaran QRIS</h2>
-                      <p className="text-sm text-slate-500 font-medium">Selesaikan pembayaran untuk mengaktifkan paket</p>
+                      <h2 className="text-xl sm:text-2xl font-black text-slate-900">Pembayaran QRIS</h2>
+                      <p className="text-xs sm:text-sm text-slate-500 font-medium">Selesaikan pembayaran untuk mengaktifkan paket</p>
                     </div>
                     <button 
                       onClick={() => setShowPayment(false)}
-                      className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors"
+                      className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors shrink-0"
                     >
                       <X size={20} />
                     </button>
@@ -302,32 +301,32 @@ export default function PilihPaket() {
 
                   {/* Order Summary */}
                   <div className="bg-slate-50 rounded-2xl p-4 mb-6 border border-slate-100">
-                    <div className="flex items-center justify-between mb-3">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-3">
                       <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center ${activePlan?.accent}`}>
+                        <div className={`w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center ${activePlan?.accent} shrink-0`}>
                           {activePlan?.icon}
                         </div>
                         <div>
                           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Paket Dipilih</p>
-                          <p className="text-sm font-black text-slate-900">{activePlan?.name} — {selectedPeriod === 'monthly' ? '1 Bulan' : selectedPeriod === 'quarterly' ? '3 Bulan' : 'Tahunan'}</p>
+                          <p className="text-xs sm:text-sm font-black text-slate-900">{activePlan?.name} — {selectedPeriod === 'monthly' ? '1 Bulan' : selectedPeriod === 'quarterly' ? '3 Bulan' : 'Tahunan'}</p>
                         </div>
                       </div>
-                      <div className="text-right">
+                      <div className="text-left sm:text-right">
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Harga Paket</p>
-                        <p className="text-sm font-bold text-slate-500 line-through">
+                        <p className="text-xs sm:text-sm font-bold text-slate-500 line-through">
                           {activePlan && getPrice(activePlan.price).formatted}
                         </p>
                       </div>
                     </div>
                     
                     <div className="flex justify-between items-center py-2 border-t border-slate-200 border-dashed">
-                      <p className="text-sm font-bold text-orange-600">Promo Akun Baru</p>
-                      <p className="text-sm font-bold text-orange-600">- Rp {uniqueDiscount}</p>
+                      <p className="text-xs sm:text-sm font-bold text-orange-600">Promo Akun Baru</p>
+                      <p className="text-xs sm:text-sm font-bold text-orange-600">- Rp {uniqueDiscount}</p>
                     </div>
                     
-                    <div className="flex justify-between items-end pt-2 border-t border-slate-200">
-                      <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Pembayaran</p>
-                      <p className="text-2xl font-black text-orange-600">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-1 sm:gap-0 pt-2 border-t border-slate-200">
+                      <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Pembayaran</p>
+                      <p className="text-xl sm:text-2xl font-black text-orange-600">
                         {activePlan && new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(getPrice(activePlan.price).rawTotal - uniqueDiscount)}
                       </p>
                     </div>

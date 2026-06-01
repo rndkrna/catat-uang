@@ -14,6 +14,14 @@ const transactionSchema = z.object({
   description: z.string().optional(),
 });
 
+// Schema untuk mengedit transaksi (tidak memerlukan 'type')
+const editTransactionSchema = z.object({
+  amount: z.number().positive(),
+  category: z.string().min(1),
+  description: z.string().optional(),
+});
+
+
 // Terapkan middleware auth untuk seluruh rute transaksi
 transactionRouter.use('/*', authMiddleware);
 
@@ -204,7 +212,7 @@ transactionRouter.post('/:id/restore', async (c) => {
 });
 
 // PUT /api/transactions/:id — edit transaksi
-transactionRouter.put('/:id', zValidator('json', transactionSchema), async (c) => {
+transactionRouter.put('/:id', zValidator('json', editTransactionSchema), async (c) => {
   const userPayload = c.get('user');
   const userId = userPayload.id;
 

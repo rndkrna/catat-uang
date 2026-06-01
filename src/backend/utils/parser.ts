@@ -24,11 +24,20 @@ const LANG = 'ind+eng';
 
 // ─── Helper: parse nominal teks ──────────────────────────────────────────────
 function parseNominal(text: string): number | null {
-  const cleanStr = text.replace(/[^0-9kmjt\\.]/gi, '').toLowerCase();
-  let numStr = cleanStr.replace(/[kmjt]/g, '');
+  const normalized = text.replace(/,/g, '.').toLowerCase();
+  const hasSuffix = /[kmjtrbiuam]/.test(normalized);
+
+  const cleanStr = normalized.replace(/[^0-9kmjtrbiuam.]/gi, '');
+  let numStr = cleanStr.replace(/[kmjtrbiuam]/g, '');
   if (numStr === '') return null;
 
-  let num = parseFloat(numStr.replace(/\./g, ''));
+  let num: number;
+  if (hasSuffix) {
+    num = parseFloat(numStr);
+  } else {
+    num = parseFloat(numStr.replace(/\./g, ''));
+  }
+
   if (cleanStr.includes('k') || cleanStr.includes('rb') || cleanStr.includes('ribu')) num *= 1000;
   if (cleanStr.includes('m') || cleanStr.includes('jt') || cleanStr.includes('juta')) num *= 1_000_000;
 
@@ -43,7 +52,7 @@ function parseTextLine(text: string): ParsedTransaction | null {
   const expenseKeywords = ['beli', 'makan', 'minum', 'bayar', 'keluar', 'bensin', 'grab', 'gojek',
     'shopee', 'tokopedia', 'belanja', 'jajan', '-'];
 
-  const amountMatch = text.match(/\b(?:\d{1,3}(?:\.\d{3})*|\d+)(?:k|rb|ribu|jt|juta)?\b/i);
+  const amountMatch = text.match(/\b(?:\d{1,3}(?:\.\d{3})*|\d+)(?:[.,]\d+)?(?:k|rb|ribu|jt|juta)?\b/i);
   if (!amountMatch) return null;
 
   const amount = parseNominal(amountMatch[0]);
