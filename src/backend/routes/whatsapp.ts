@@ -1,5 +1,7 @@
 import { Hono } from 'hono';
 import bcrypt from 'bcryptjs';
+import fs from 'fs';
+import path from 'path';
 import { db } from '../services/database.js';
 import { generatePassword, formatPhoneNumber } from '../utils/password.js';
 import { parseTransactionMessage, scanReceiptImage } from '../utils/parser.js';
@@ -68,10 +70,17 @@ if (!(globalThis as any)._whatsappDedupeInterval) {
   (globalThis as any)._whatsappDedupeInterval = timer;
 }
 
-// ─── Webhook POST (terima pesan dari Meta) ────────────────────────────────
 whatsappRouter.post('/webhook', async (c) => {
   try {
     const body = await c.req.json();
+
+    // Log incoming webhook body for debugging
+    try {
+      const logPath = path.join(process.cwd(), 'webhook.log');
+      fs.appendFileSync(logPath, JSON.stringify({ timestamp: new Date().toISOString(), body }, null, 2) + '\n---\n');
+    } catch (logErr) {
+      console.error('[WhatsApp] Gagal menulis log webhook:', logErr);
+    }
 
     if (body.object !== 'whatsapp_business_account') {
       return c.json({ error: 'Invalid object' }, 400);
