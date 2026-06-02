@@ -165,7 +165,7 @@ export default function PilihPaket() {
       periodText = ' / bln';
       savings = originalMonthly - basePrice;
     } else if (selectedPeriod === 'quarterly') {
-      total = basePrice * 3 * 0.85; // 15% discount
+      total = basePrice * 3 * 0.7; // 30% discount
       periodText = ' / 3 bln';
       savings = (originalMonthly * 3) - total;
     } else if (selectedPeriod === 'yearly') {
@@ -236,8 +236,8 @@ export default function PilihPaket() {
           {/* Period Switcher */}
           <div className="flex flex-col sm:inline-flex sm:flex-row p-1.5 bg-slate-100/80 backdrop-blur-sm rounded-2xl border border-slate-200/50 mb-12 w-full sm:w-auto max-w-sm sm:max-w-none mx-auto gap-1 sm:gap-0">
             {[
-              { id: 'monthly', label: '1 Bulan', tag: '' },
-              { id: 'quarterly', label: '3 Bulan', tag: 'Hemat 15%' },
+              { id: 'monthly', label: '1 Bulan', tag: 'Hemat 20%' },
+              { id: 'quarterly', label: '3 Bulan', tag: 'Hemat 30%' },
               { id: 'yearly', label: 'Tahunan', tag: 'Hemat 30%' }
             ].map((period) => (
               <button
