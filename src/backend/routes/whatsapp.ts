@@ -49,6 +49,25 @@ function summarize(txs: any[], label: string): string {
 ${txs.length > 0 ? `\n*5 Transaksi Terakhir:*\n${lines}${txs.length > 5 ? `\n... dan ${txs.length - 5} transaksi lainnya` : ''}` : '\nBelum ada transaksi.'}`;
 }
 
+// Cache untuk menghindari pemrosesan duplikat dari webhook retry WhatsApp
+const processedMessageIds = new Map<string, number>();
+
+// Bersihkan cache secara berkala (pesan yang lebih lama dari 5 menit)
+if (!(globalThis as any)._whatsappDedupeInterval) {
+  const timer = setInterval(() => {
+    const now = Date.now();
+    for (const [id, timestamp] of processedMessageIds.entries()) {
+      if (now - timestamp > 5 * 60 * 1000) {
+        processedMessageIds.delete(id);
+      }
+    }
+  }, 60 * 1000);
+  if (typeof timer.unref === 'function') {
+    timer.unref();
+  }
+  (globalThis as any)._whatsappDedupeInterval = timer;
+}
+
 // ─── Webhook POST (terima pesan dari Meta) ────────────────────────────────
 whatsappRouter.post('/webhook', async (c) => {
   try {
@@ -66,6 +85,16 @@ whatsappRouter.post('/webhook', async (c) => {
     if (!msgObj) {
       console.log('[WhatsApp] Webhook diterima (status update, bukan pesan chat)');
       return c.json({ status: 'no_message' });
+    }
+
+    // Deduplikasi pesan berdasarkan Message ID dari WhatsApp (wamid)
+    const msgId = msgObj.id;
+    if (msgId) {
+      if (processedMessageIds.has(msgId)) {
+        console.log(`[WhatsApp] Pesan duplikat terdeteksi (retry): ${msgId}. Diabaikan.`);
+        return c.json({ status: 'duplicate_ignored' });
+      }
+      processedMessageIds.set(msgId, Date.now());
     }
 
     const from           = msgObj.from;

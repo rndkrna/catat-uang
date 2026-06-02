@@ -28,13 +28,25 @@ authRouter.post('/login', zValidator('json', loginSchema), async (c) => {
     }, 401);
   }
 
-  // Verifikasi password (dengan fallback ke plain text jika db belum dimigrasi sepenuhnya)
-  const isPasswordValid = await bcrypt.compare(password, user.password);
-  if (!isPasswordValid && user.password !== password) {
-    return c.json({
-      success: false,
-      message: 'Nomor WhatsApp atau password salah',
-    }, 401);
+  // Verifikasi password (dengan otomatis migrasi password polos ke bcrypt saat login berhasil)
+  let isPasswordValid = await bcrypt.compare(password, user.password);
+  if (!isPasswordValid) {
+    if (user.password === password) {
+      try {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        await db.updatePassword(user.id, hashedPassword);
+        isPasswordValid = true;
+      } catch (err) {
+        console.error('Failed to automatically upgrade plaintext password on login:', err);
+        // Tetap izinkan login kali ini meskipun gagal simpan hash baru ke db
+        isPasswordValid = true;
+      }
+    } else {
+      return c.json({
+        success: false,
+        message: 'Nomor WhatsApp atau password salah',
+      }, 401);
+    }
   }
   
   // Generate JWT token
