@@ -13,6 +13,7 @@ interface Plan {
   name: string;
   tagline: string;
   price: number;
+  originalPrice?: number;
   icon: React.ReactNode;
   color: string;
   accent: string;
@@ -38,6 +39,20 @@ export default function PilihPaket() {
   const [activePlan, setActivePlan] = useState<Plan | null>(null);
   const [uniqueDiscount, setUniqueDiscount] = useState(0);
 
+  const getOriginalTotal = (basePrice: number, originalMonthlyPrice?: number): number => {
+    const originalMonthly = originalMonthlyPrice || basePrice;
+    if (selectedPeriod === 'monthly') return originalMonthly;
+    if (selectedPeriod === 'quarterly') return originalMonthly * 3;
+    if (selectedPeriod === 'yearly') return originalMonthly * 12;
+    return originalMonthly;
+  };
+
+  const getPeriodDiscount = (basePrice: number, originalMonthlyPrice?: number): number => {
+    const originalTotal = getOriginalTotal(basePrice, originalMonthlyPrice);
+    const finalTotal = getPrice(basePrice, originalMonthlyPrice).rawTotal;
+    return Math.max(0, originalTotal - finalTotal);
+  };
+
   const plans: Plan[] = [
     {
       id: 'free',
@@ -61,6 +76,7 @@ export default function PilihPaket() {
       name: 'Lite',
       tagline: 'Untuk kebutuhan dasar',
       price: 15000,
+      originalPrice: 18000,
       icon: <Zap className="w-5 h-5" />,
       color: 'from-orange-50 to-orange-100',
       accent: 'text-orange-600',
@@ -76,7 +92,8 @@ export default function PilihPaket() {
       id: 'starter',
       name: 'Starter',
       tagline: 'Paling favorit untuk rumah tangga',
-      price: 29000,
+      price: 28000,
+      originalPrice: 35000,
       icon: <Sparkles className="w-5 h-5" />,
       color: 'from-orange-50 to-orange-100',
       accent: 'text-orange-600',
@@ -93,7 +110,8 @@ export default function PilihPaket() {
       id: 'premium',
       name: 'Premium',
       tagline: 'Solusi lengkap untuk profesional',
-      price: 49000,
+      price: 40000,
+      originalPrice: 50000,
       icon: <ShieldCheck className="w-5 h-5" />,
       color: 'from-blue-50 to-blue-100',
       accent: 'text-blue-600',
@@ -109,7 +127,8 @@ export default function PilihPaket() {
       id: 'pro',
       name: 'Pro',
       tagline: 'Performa tanpa batas',
-      price: 99000,
+      price: 80000,
+      originalPrice: 100000,
       icon: <Rocket className="w-5 h-5" />,
       color: 'from-amber-50 to-amber-100',
       accent: 'text-amber-600',
@@ -124,7 +143,7 @@ export default function PilihPaket() {
     }
   ];
 
-  const getPrice = (basePrice: number): PriceData => {
+  const getPrice = (basePrice: number, originalMonthlyPrice?: number): PriceData => {
     if (basePrice === 0) {
       return {
         rawTotal: 0,
@@ -139,20 +158,25 @@ export default function PilihPaket() {
     let total = basePrice;
     let periodText = '/ bln';
     let savings = 0;
+    const originalMonthly = originalMonthlyPrice || basePrice;
 
     if (selectedPeriod === 'monthly') {
       total = basePrice;
       periodText = ' / bln';
-      savings = basePrice * 0.1; // Pretend 10% savings
+      savings = originalMonthly - basePrice;
     } else if (selectedPeriod === 'quarterly') {
       total = basePrice * 3 * 0.85; // 15% discount
       periodText = ' / 3 bln';
-      savings = basePrice * 3 * 0.15;
+      savings = (originalMonthly * 3) - total;
     } else if (selectedPeriod === 'yearly') {
       total = basePrice * 12 * 0.7; // 30% discount
       periodText = ' / thn';
-      savings = basePrice * 12 * 0.3;
+      savings = (originalMonthly * 12) - total;
     }
+
+    // Rounding to clean thousands
+    total = Math.round(total / 1000) * 1000;
+    savings = Math.round(savings / 1000) * 1000;
 
     return {
       rawTotal: total,
@@ -212,7 +236,7 @@ export default function PilihPaket() {
           {/* Period Switcher */}
           <div className="flex flex-col sm:inline-flex sm:flex-row p-1.5 bg-slate-100/80 backdrop-blur-sm rounded-2xl border border-slate-200/50 mb-12 w-full sm:w-auto max-w-sm sm:max-w-none mx-auto gap-1 sm:gap-0">
             {[
-              { id: 'monthly', label: '1 Bulan', tag: 'Hemat 10%' },
+              { id: 'monthly', label: '1 Bulan', tag: '' },
               { id: 'quarterly', label: '3 Bulan', tag: 'Hemat 15%' },
               { id: 'yearly', label: 'Tahunan', tag: 'Hemat 30%' }
             ].map((period) => (
@@ -250,7 +274,7 @@ export default function PilihPaket() {
               <PricingCard 
                 key={plan.id} 
                 plan={plan} 
-                priceData={getPrice(plan.price)} 
+                priceData={getPrice(plan.price, plan.originalPrice)} 
                 index={index}
                 isQuarterly={selectedPeriod === 'quarterly'}
                 isYearly={selectedPeriod === 'yearly'}
@@ -301,33 +325,61 @@ export default function PilihPaket() {
 
                   {/* Order Summary */}
                   <div className="bg-slate-50 rounded-2xl p-4 mb-6 border border-slate-100">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-3">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center ${activePlan?.accent} shrink-0`}>
-                          {activePlan?.icon}
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Paket Dipilih</p>
-                          <p className="text-xs sm:text-sm font-black text-slate-900">{activePlan?.name} — {selectedPeriod === 'monthly' ? '1 Bulan' : selectedPeriod === 'quarterly' ? '3 Bulan' : 'Tahunan'}</p>
-                        </div>
+                    {/* Header: Package Icon & Name */}
+                    <div className="flex items-center gap-3 mb-4 pb-4 border-b border-slate-200/60">
+                      <div className={`w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center ${activePlan?.accent} shrink-0`}>
+                        {activePlan?.icon}
                       </div>
-                      <div className="text-left sm:text-right">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Harga Paket</p>
-                        <p className="text-xs sm:text-sm font-bold text-slate-500 line-through">
-                          {activePlan && getPrice(activePlan.price).formatted}
-                        </p>
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Paket Dipilih</p>
+                        <p className="text-sm font-black text-slate-900">{activePlan?.name} — {selectedPeriod === 'monthly' ? '1 Bulan' : selectedPeriod === 'quarterly' ? '3 Bulan' : 'Tahunan'}</p>
+                      </div>
+                    </div>
+
+                    {/* Detailed Pricing breakdown */}
+                    <div className="space-y-2.5 text-xs font-medium text-slate-600 mb-4">
+                      {/* Original Price (if discount exists) */}
+                      {activePlan && getPeriodDiscount(activePlan.price, activePlan.originalPrice) > 0 && (
+                        <div className="flex justify-between items-center">
+                          <span>Harga Normal ({selectedPeriod === 'monthly' ? '1 Bulan' : selectedPeriod === 'quarterly' ? '3 Bulan' : '1 Tahun'})</span>
+                          <span className="line-through text-slate-400">
+                            {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(getOriginalTotal(activePlan.price, activePlan.originalPrice))}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Period Discount (if discount exists) */}
+                      {activePlan && getPeriodDiscount(activePlan.price, activePlan.originalPrice) > 0 && (
+                        <div className="flex justify-between items-center text-orange-600">
+                          <span>Diskon Paket</span>
+                          <span>
+                            - {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(getPeriodDiscount(activePlan.price, activePlan.originalPrice))}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Package Total Price */}
+                      <div className="flex justify-between items-center">
+                        <span>Harga Paket ({selectedPeriod === 'monthly' ? '1 Bulan' : selectedPeriod === 'quarterly' ? '3 Bulan' : 'Tahunan'})</span>
+                        <span className="font-bold text-slate-900">
+                          {activePlan && new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(getPrice(activePlan.price, activePlan.originalPrice).rawTotal)}
+                        </span>
+                      </div>
+
+                      {/* Unique Code / New User Promo */}
+                      <div className="flex justify-between items-center text-orange-600 py-2 border-t border-slate-200 border-dashed">
+                        <span className="font-bold">Promo Akun Baru (Kode Unik)</span>
+                        <span className="font-bold">
+                          - Rp {uniqueDiscount}
+                        </span>
                       </div>
                     </div>
                     
-                    <div className="flex justify-between items-center py-2 border-t border-slate-200 border-dashed">
-                      <p className="text-xs sm:text-sm font-bold text-orange-600">Promo Akun Baru</p>
-                      <p className="text-xs sm:text-sm font-bold text-orange-600">- Rp {uniqueDiscount}</p>
-                    </div>
-                    
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-1 sm:gap-0 pt-2 border-t border-slate-200">
+                    {/* Final Payment Total */}
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-1 sm:gap-0 pt-2.5 border-t border-slate-200">
                       <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Pembayaran</p>
                       <p className="text-xl sm:text-2xl font-black text-orange-600">
-                        {activePlan && new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(getPrice(activePlan.price).rawTotal - uniqueDiscount)}
+                        {activePlan && new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(getPrice(activePlan.price, activePlan.originalPrice).rawTotal - uniqueDiscount)}
                       </p>
                     </div>
                   </div>
@@ -393,7 +445,7 @@ export default function PilihPaket() {
                       }
                       
                       const userObj = JSON.parse(savedUser);
-                      const totalTransfer = activePlan ? getPrice(activePlan.price).rawTotal - uniqueDiscount : 0;
+                      const totalTransfer = activePlan ? getPrice(activePlan.price, activePlan.originalPrice).rawTotal - uniqueDiscount : 0;
                       
                       try {
                         const res = await fetch('/api/payments', {
@@ -477,6 +529,13 @@ function PricingCard({
   isYearly: boolean;
   onSelect: () => void;
 }) {
+  const originalMonthly = plan.originalPrice || plan.price;
+  let originalPriceForPeriod = originalMonthly;
+  if (isQuarterly) originalPriceForPeriod = originalMonthly * 3;
+  if (isYearly) originalPriceForPeriod = originalMonthly * 12;
+
+  const hasDiscount = originalPriceForPeriod > priceData.rawTotal;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -518,6 +577,11 @@ function PricingCard({
             transition={{ duration: 0.3 }}
             className="flex flex-col justify-center"
           >
+            {hasDiscount && (
+              <span className="text-xs font-bold text-slate-400 line-through mb-0.5">
+                {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(originalPriceForPeriod)}
+              </span>
+            )}
             <div className="flex items-baseline gap-1">
               <span className="text-3xl font-black text-slate-900 tracking-tight">
                 {typeof priceData === 'string' ? priceData : priceData.formatted}
