@@ -336,7 +336,7 @@ export default function PilihPaket() {
                   <div className="text-center mb-8">
                     <div className="relative inline-block p-4 bg-white rounded-3xl border-2 border-slate-100 shadow-inner mb-4">
                       <img 
-                        src="/qris_placeholder_1778388115439.png" 
+                        src="/images/qris.jpeg" 
                         alt="QRIS" 
                         className="w-48 h-48 rounded-xl object-cover"
                       />
