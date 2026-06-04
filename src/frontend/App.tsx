@@ -11,6 +11,7 @@ import Settings from './Settings';
 import MenungguKonfirmasi from './MenungguKonfirmasi';
 import AdminPanel from './AdminPanel';
 import PaketDashboard from './PaketDashboard';
+import Partner from './Partner';
 
 // User badge component (top)
 const UserBadge = () => (
@@ -725,6 +726,7 @@ export default function App() {
         <Route path="/menunggu-konfirmasi" element={<MenungguKonfirmasi />} />
         <Route path="/admin-dashboard" element={<AdminPanel />} />
         <Route path="/fitur-eksklusif" element={<PaketDashboard />} />
+        <Route path="/partner" element={<Partner />} />
       </Routes>
     </Router>
   );

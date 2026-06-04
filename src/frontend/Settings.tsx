@@ -16,7 +16,8 @@ import {
   EyeOff,
   CheckCircle,
   AlertCircle,
-  Loader2
+  Loader2,
+  Users
 } from 'lucide-react';
 
 // --- Modal Ubah Password ---
@@ -439,6 +440,23 @@ export default function Settings() {
                   <div>
                     <h4 className="text-sm font-bold text-gray-800">Ubah Password</h4>
                     <p className="text-[10px] text-gray-400">Perbarui password akun</p>
+                  </div>
+                </div>
+                <ChevronRight size={16} className="text-gray-300" />
+              </button>
+
+              {/* Kelola Pasangan / Anggota Tim */}
+              <button
+                onClick={() => navigate('/partner')}
+                className="w-full bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center justify-between group cursor-pointer hover:bg-gray-50 transition-colors text-left"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="text-orange-500">
+                    <Users size={22} />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-gray-800">Anggota Tim</h4>
+                    <p className="text-[10px] text-gray-400">Kelola akses akun bersama</p>
                   </div>
                 </div>
                 <ChevronRight size={16} className="text-gray-300" />

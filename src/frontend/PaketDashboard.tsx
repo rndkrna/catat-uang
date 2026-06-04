@@ -162,7 +162,7 @@ export default function PaketDashboard() {
               Tambahkan nomor WhatsApp pasangan atau anggota tim agar mereka bisa ikut mencatat pemasukan dan pengeluaran secara tersinkronisasi.
             </p>
             <button 
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate('/transactions')}
               className={`w-full py-3 rounded-xl font-bold text-sm bg-slate-50 text-slate-700 hover:${theme.primary} hover:text-white transition-colors border border-slate-200 hover:border-transparent`}>
               Kelola Anggota Tim
             </button>

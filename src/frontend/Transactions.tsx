@@ -15,7 +15,8 @@ import {
   AlertCircle,
   Edit2,
   RotateCcw,
-  X
+  X,
+  Users
 } from 'lucide-react';
 
 interface Transaction {
@@ -34,6 +35,14 @@ export default function Transactions() {
   const [viewMode, setViewMode] = useState<'aktif' | 'sampah'>('aktif');
   const [period, setPeriod] = useState<'hari' | 'minggu' | 'bulan' | 'semua'>('hari');
   
+  const [user, setUser] = useState<any>(null);
+  
+  // Edit state
+  const [editingTx, setEditingTx] = useState<Transaction | null>(null);
+  const [editAmount, setEditAmount] = useState('');
+  const [editCategory, setEditCategory] = useState('');
+  const [editDesc, setEditDesc] = useState('');
+  
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [deletedTransactions, setDeletedTransactions] = useState<Transaction[]>([]);
   
@@ -41,12 +50,6 @@ export default function Transactions() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [processingId, setProcessingId] = useState<number | null>(null);
-  
-  // Edit state
-  const [editingTx, setEditingTx] = useState<Transaction | null>(null);
-  const [editAmount, setEditAmount] = useState('');
-  const [editCategory, setEditCategory] = useState('');
-  const [editDesc, setEditDesc] = useState('');
 
   const token = localStorage.getItem('token');
   const isDummy = token === 'dummy-token-123';
@@ -98,6 +101,9 @@ export default function Transactions() {
     const token = localStorage.getItem('token');
     if (!savedUser) { navigate('/login'); return; }
     
+    const parsedUser = JSON.parse(savedUser);
+    setUser(parsedUser);
+
     // Fetch latest user data
     if (token && token !== 'dummy-token-123') {
       fetch('/api/auth/me', {
@@ -107,6 +113,7 @@ export default function Transactions() {
         .then(json => {
           if (json.success && json.data?.user) {
             localStorage.setItem('user', JSON.stringify(json.data.user));
+            setUser(json.data.user);
           }
         })
         .catch(err => console.error('Failed to fetch user profile', err));
@@ -114,6 +121,8 @@ export default function Transactions() {
     
     fetchTransactions();
   }, [navigate, fetchTransactions]);
+
+
 
   const handleDelete = async (id: number) => {
     if (!confirm('Pindahkan transaksi ini ke riwayat sampah?')) return;
@@ -219,9 +228,14 @@ export default function Transactions() {
     .filter(t => t.type === 'expense')
     .reduce((s, t) => s + t.amount, 0);
 
-  const savedUser = localStorage.getItem('user');
-  const user = savedUser ? JSON.parse(savedUser) : null;
   const hasPremiumFeatures = user?.package && ['starter', 'premium', 'pro'].includes(user.package);
+
+  const maxPartnersMap: Record<string, number> = {
+    starter: 1,
+    premium: 2,
+    pro: 4
+  };
+  const maxPartners = user ? (maxPartnersMap[user.package] || 0) : 0;
 
   return (
     <div className="min-h-screen bg-[#f1f5f9] pb-24 font-sans flex flex-col items-center">
@@ -308,6 +322,8 @@ export default function Transactions() {
             </div>
           )}
           
+
+
           {/* Active Mode Elements */}
           {viewMode === 'aktif' && (
             <>
