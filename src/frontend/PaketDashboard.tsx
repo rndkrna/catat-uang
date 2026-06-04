@@ -1,35 +1,51 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShieldCheck, Download, Users, Zap, Crown, Rocket, ArrowLeft } from 'lucide-react';
+import { exportToExcel, exportToPDF } from './utils/exportUtils';
 
 export default function PaketDashboard() {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
 
-  const handleExport = async () => {
+  const handleExportExcel = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/transactions/export', {
-        headers: { Authorization: `Bearer ${token}` },
+      const response = await fetch('/api/transactions', {
+        headers: { 'Authorization': `Bearer ${token}` }
       });
-
+      
       if (!response.ok) {
-        alert('Gagal mengunduh laporan. Silakan coba lagi.');
+        alert('Gagal mengambil data untuk export.');
         return;
       }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'laporan_tulisduit.csv';
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      
+      const json = await response.json();
+      if (json.success && json.data.transactions) {
+        exportToExcel(json.data.transactions, user?.name || 'User');
+      }
     } catch (err) {
-      console.error(err);
-      alert('Terjadi kesalahan saat mengunduh laporan.');
+      console.error('Export Excel failed', err);
+    }
+  };
+
+  const handleExportPDF = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/transactions', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (!response.ok) {
+        alert('Gagal mengambil data untuk export.');
+        return;
+      }
+      
+      const json = await response.json();
+      if (json.success && json.data.transactions) {
+        exportToPDF(json.data.transactions, user?.name || 'User');
+      }
+    } catch (err) {
+      console.error('Export PDF failed', err);
     }
   };
 
@@ -143,13 +159,20 @@ export default function PaketDashboard() {
             </div>
             <h3 className="text-xl font-black text-slate-900 mb-2">Export Data Laporan</h3>
             <p className="text-slate-500 text-sm leading-relaxed mb-6">
-              Unduh laporan keuangan Anda dalam format CSV atau PDF. Sangat cocok untuk diolah kembali di Excel atau untuk pelaporan bisnis.
+              Unduh laporan keuangan Anda dalam format Excel (.xlsx) dengan tabel berwarna, atau format PDF yang rapi untuk di-print.
             </p>
-            <button 
-              onClick={handleExport}
-              className={`w-full py-3 rounded-xl font-bold text-sm bg-slate-50 text-slate-700 hover:${theme.primary} hover:text-white transition-colors border border-slate-200 hover:border-transparent`}>
-              Download CSV Sekarang
-            </button>
+            <div className="flex flex-col gap-2">
+              <button 
+                onClick={handleExportExcel}
+                className={`w-full py-3 rounded-xl font-bold text-sm bg-slate-50 text-slate-700 hover:${theme.primary} hover:text-white transition-colors border border-slate-200 hover:border-transparent`}>
+                Export ke Excel
+              </button>
+              <button 
+                onClick={handleExportPDF}
+                className={`w-full py-3 rounded-xl font-bold text-sm bg-slate-50 text-slate-700 hover:${theme.primary} hover:text-white transition-colors border border-slate-200 hover:border-transparent`}>
+                Export ke PDF
+              </button>
+            </div>
           </div>
 
           {/* Tim/Pasangan Feature */}

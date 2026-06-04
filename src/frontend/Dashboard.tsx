@@ -20,8 +20,10 @@ import {
   Crown,
   Loader2,
   RefreshCw,
-  Lock
+  Lock,
+  AlertCircle
 } from 'lucide-react';
+import { exportToExcel, exportToPDF } from './utils/exportUtils';
 
 interface DashboardData {
   balance: number;
@@ -85,38 +87,49 @@ export default function Dashboard() {
     }
   }, []);
 
-  const handleExport = async () => {
+  const handleExportExcel = async () => {
     if (isDummy) return navigate('/login');
-    
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/transactions/export', {
+      const response = await fetch('/api/transactions', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
-      if (response.status === 403) {
-        // Jika bukan paket premium, arahkan ke fitur eksklusif
-        navigate('/fitur-eksklusif');
+      if (!response.ok) {
+        if (response.status === 403) return navigate('/fitur-eksklusif');
+        alert('Gagal mengambil data untuk export.');
         return;
       }
+      
+      const json = await response.json();
+      if (json.success && json.data.transactions) {
+        exportToExcel(json.data.transactions, user?.name || 'User');
+      }
+    } catch (err) {
+      console.error('Export Excel failed', err);
+    }
+  };
+
+  const handleExportPDF = async () => {
+    if (isDummy) return navigate('/login');
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/transactions', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       
       if (!response.ok) {
-        alert('Gagal mengunduh laporan. Silakan coba lagi.');
+        if (response.status === 403) return navigate('/fitur-eksklusif');
+        alert('Gagal mengambil data untuk export.');
         return;
       }
       
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'laporan_tulisduit.csv';
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      const json = await response.json();
+      if (json.success && json.data.transactions) {
+        exportToPDF(json.data.transactions, user?.name || 'User');
+      }
     } catch (err) {
-      console.error(err);
-      alert('Terjadi kesalahan saat mengunduh laporan.');
+      console.error('Export PDF failed', err);
     }
   };
 
@@ -355,16 +368,16 @@ export default function Dashboard() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <button 
-                onClick={handleExport}
+                onClick={handleExportPDF}
                 className="py-2.5 bg-blue-50 text-blue-600 rounded-xl text-xs font-bold hover:bg-blue-100 transition-colors flex items-center justify-center gap-2"
               >
                 Export PDF
               </button>
               <button 
-                onClick={handleExport}
-                className="py-2.5 bg-slate-50 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-100 transition-colors flex items-center justify-center gap-2"
+                onClick={handleExportExcel}
+                className="py-2.5 bg-emerald-50 text-emerald-600 rounded-xl text-xs font-bold hover:bg-emerald-100 transition-colors flex items-center justify-center gap-2"
               >
-                Export CSV
+                Export Excel
               </button>
             </div>
           </div>
