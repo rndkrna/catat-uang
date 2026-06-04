@@ -127,10 +127,11 @@ export default function Partner() {
               <div className="space-y-3">
                 {partnerPhones.map((phone, idx) => (
                   <div key={idx}>
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">
+                    <label htmlFor={`partner-phone-${idx}`} className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">
                       {maxPartners === 1 ? 'Nomor WA Pasangan' : `Nomor WA Anggota #${idx + 1}`}
                     </label>
                     <input
+                      id={`partner-phone-${idx}`}
                       type="text"
                       placeholder="Contoh: 628123456789"
                       value={phone}

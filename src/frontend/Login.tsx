@@ -92,21 +92,22 @@ export default function Login() {
 
             {/* WhatsApp Number */}
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="login-phone" className="block text-sm font-medium text-gray-700 mb-2">
                 Nomor WhatsApp
               </label>
               <div className="relative">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                  <Phone size={16} />
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Phone size={20} className="text-gray-400" />
                 </div>
                 <input
+                  id="login-phone"
                   type="tel"
                   value={waNumber}
                   onChange={(e) => setWaNumber(e.target.value)}
                   placeholder="08123456789"
                   disabled={isLoading}
                   required
-                  className="w-full pl-9 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm disabled:opacity-50"
+                  className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm disabled:opacity-50"
                 />
               </div>
               <p className="text-[11px] text-gray-400 mt-1">Format: 08xxx, 628xxx, atau +628xxx</p>
@@ -114,14 +115,15 @@ export default function Login() {
 
             {/* Password */}
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="login-password" className="block text-sm font-medium text-gray-700 mb-2">
                 Password
               </label>
               <div className="relative">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                  <Lock size={16} />
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Lock size={20} className="text-gray-400" />
                 </div>
                 <input
+                  id="login-password"
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}

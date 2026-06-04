@@ -163,9 +163,10 @@ export default function AdminPanel() {
               </div>
             )}
             <div className="mb-6">
-              <label className="block text-sm font-bold text-slate-700 mb-2">Password Admin</label>
+              <label htmlFor="admin-password" className="block text-sm font-bold text-slate-700 mb-2">Password Admin</label>
               <div className="relative">
                 <input
+                  id="admin-password"
                   type={showPassword ? 'text' : 'password'}
                   value={passwordInput}
                   onChange={(e) => setPasswordInput(e.target.value)}

@@ -106,9 +106,10 @@ function ChangePasswordModal({ onClose, user }: { onClose: () => void; user: any
             )}
 
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1.5">Password Lama</label>
+              <label htmlFor="old-password" className="block text-xs font-semibold text-gray-700 mb-1.5">Password Lama</label>
               <div className="relative">
                 <input
+                  id="old-password"
                   type={showOld ? 'text' : 'password'}
                   value={oldPassword}
                   onChange={(e) => setOldPassword(e.target.value)}
@@ -123,9 +124,10 @@ function ChangePasswordModal({ onClose, user }: { onClose: () => void; user: any
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1.5">Password Baru</label>
+              <label htmlFor="new-password" className="block text-xs font-semibold text-gray-700 mb-1.5">Password Baru</label>
               <div className="relative">
                 <input
+                  id="new-password"
                   type={showNew ? 'text' : 'password'}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
@@ -141,8 +143,9 @@ function ChangePasswordModal({ onClose, user }: { onClose: () => void; user: any
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1.5">Konfirmasi Password Baru</label>
+              <label htmlFor="confirm-password" className="block text-xs font-semibold text-gray-700 mb-1.5">Konfirmasi Password Baru</label>
               <input
+                id="confirm-password"
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}

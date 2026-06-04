@@ -257,8 +257,9 @@ export default function Transactions() {
             
             <div className="space-y-4">
               <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">Nominal</label>
+                <label htmlFor="edit-amount" className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">Nominal</label>
                 <input 
+                  id="edit-amount"
                   type="number" 
                   value={editAmount}
                   onChange={e => setEditAmount(e.target.value)}
@@ -266,8 +267,9 @@ export default function Transactions() {
                 />
               </div>
               <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">Kategori</label>
+                <label htmlFor="edit-category" className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">Kategori</label>
                 <input 
+                  id="edit-category"
                   type="text" 
                   value={editCategory}
                   onChange={e => setEditCategory(e.target.value)}
@@ -275,8 +277,9 @@ export default function Transactions() {
                 />
               </div>
               <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">Keterangan</label>
+                <label htmlFor="edit-desc" className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">Keterangan</label>
                 <textarea 
+                  id="edit-desc"
                   value={editDesc}
                   onChange={e => setEditDesc(e.target.value)}
                   className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm"
