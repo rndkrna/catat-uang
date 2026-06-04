@@ -125,6 +125,33 @@ function getUserIdFromToken(authHeader: string | undefined): number | null {
   }
 }
 
+// Get current user profile endpoint
+authRouter.get('/me', async (c) => {
+  const userId = getUserIdFromToken(c.req.header('Authorization'));
+  if (!userId) {
+    return c.json({ success: false, message: 'Unauthorized' }, 401);
+  }
+
+  const user = await db.getUserById(userId);
+  if (!user) {
+    return c.json({ success: false, message: 'User not found' }, 404);
+  }
+
+  return c.json({
+    success: true,
+    data: {
+      user: {
+        id: user.id,
+        phoneNumber: user.phoneNumber,
+        name: user.name || 'User',
+        package: user.package || 'free',
+        packageExpiresAt: user.packageExpiresAt || null,
+        partnerPhone: user.partnerPhone || null,
+      },
+    },
+  });
+});
+
 // Change password endpoint
 authRouter.post('/change-password', async (c) => {
   const userId = getUserIdFromToken(c.req.header('Authorization'));

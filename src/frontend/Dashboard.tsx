@@ -77,6 +77,23 @@ export default function Dashboard() {
     }
   }, []);
 
+  const fetchUser = useCallback(async (token: string) => {
+    try {
+      const res = await fetch('/api/auth/me', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.data?.user) {
+          setUser(json.data.user);
+          localStorage.setItem('user', JSON.stringify(json.data.user));
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch user profile', err);
+    }
+  }, []);
+
   const handleExport = async () => {
     if (isDummy) return navigate('/login');
     
@@ -162,10 +179,11 @@ export default function Dashboard() {
         setData({ balance: 0, totalIncome: 0, totalExpense: 0, todayIncome: 0, todayExpense: 0, todayCount: 0, transactions: [] });
         setLoading(false);
       } else {
+        fetchUser(token);
         fetchData(token);
       }
     }
-  }, [navigate, fetchData]);
+  }, [navigate, fetchData, fetchUser]);
 
   if (!user) return null;
 

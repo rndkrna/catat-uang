@@ -35,10 +35,32 @@ export default function PaketDashboard() {
 
   useEffect(() => {
     const savedUser = localStorage.getItem('user');
+    const token = localStorage.getItem('token');
+    
     if (!savedUser) {
       navigate('/login');
     } else {
       const u = JSON.parse(savedUser);
+      
+      // If we have a token, fetch latest user data asynchronously
+      if (token && token !== 'dummy-token-123') {
+        fetch('/api/auth/me', {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+          .then(res => res.json())
+          .then(json => {
+            if (json.success && json.data?.user) {
+              localStorage.setItem('user', JSON.stringify(json.data.user));
+              setUser(json.data.user);
+              // if they became free or lost package, redirect
+              if (!json.data.user.package || json.data.user.package === 'free') {
+                navigate('/pilih-paket');
+              }
+            }
+          })
+          .catch(err => console.error('Failed to fetch user profile', err));
+      }
+
       if (!u.package || u.package === 'free') {
         navigate('/pilih-paket');
       } else {

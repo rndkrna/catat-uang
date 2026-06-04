@@ -308,10 +308,26 @@ export default function Settings() {
 
   useEffect(() => {
     const savedUser = localStorage.getItem('user');
+    const token = localStorage.getItem('token');
     if (!savedUser) {
       navigate('/login');
     } else {
       setUser(JSON.parse(savedUser));
+      
+      // Fetch latest user data
+      if (token && token !== 'dummy-token-123') {
+        fetch('/api/auth/me', {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+          .then(res => res.json())
+          .then(json => {
+            if (json.success && json.data?.user) {
+              setUser(json.data.user);
+              localStorage.setItem('user', JSON.stringify(json.data.user));
+            }
+          })
+          .catch(err => console.error('Failed to fetch user profile', err));
+      }
     }
   }, [navigate]);
 
