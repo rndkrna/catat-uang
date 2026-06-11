@@ -207,7 +207,7 @@ export default function Login() {
             </div>
             <div className="flex items-center gap-3">
               <span className="text-gray-500 w-20 shrink-0">Telepon:</span>
-              <a href="tel:083187808427" className="text-orange-600">083187808427</a>
+              <a href="tel:083844575235" className="text-orange-600">083844575235</a>
             </div>
             <div className="flex items-center gap-3">
               <span className="text-gray-500 w-20 shrink-0">Alamat:</span>
