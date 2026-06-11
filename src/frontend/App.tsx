@@ -129,7 +129,7 @@ const TestimonialNotification = () => {
 // WhatsApp floating button
 const WhatsAppFloat = () => (
   <motion.a
-    href="https://wa.me/6283844575235?text=Halo"
+    href="https://wa.me/083844575235?text=Halo"
     target="_blank"
     rel="noopener noreferrer"
     initial={{ scale: 0 }}
@@ -352,7 +352,7 @@ function LandingPage() {
         {/* CTA Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <motion.a
-            href="https://wa.me/6283844575235?text=Halo"
+            href="https://wa.me/083844575235?text=Halo"
             target="_blank"
             rel="noopener noreferrer"
             whileHover={{ scale: 1.02 }}
@@ -655,7 +655,7 @@ function LandingPage() {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <motion.a
-                  href="https://wa.me/6283844575235?text=Halo"
+                  href="https://wa.me/083844575235?text=Halo"
                   target="_blank"
                   rel="noopener noreferrer"
                   whileHover={{ scale: 1.02 }}
