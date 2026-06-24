@@ -4,7 +4,11 @@ import { z } from 'zod';
 import { db } from '../services/database.js';
 import { authMiddleware } from '../middleware/auth.js';
 
-const transactionRouter = new Hono();
+const transactionRouter = new Hono<{
+  Variables: {
+    user: { id: number; phoneNumber: string; package: string };
+  };
+}>();
 
 // Schema untuk membuat transaksi
 const transactionSchema = z.object({
