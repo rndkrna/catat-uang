@@ -19,7 +19,8 @@ adminRouter.get('/users', async (c) => {
       phoneNumber: u.phoneNumber,
       name: u.name,
       package: u.package || 'free',
-      packageExpiresAt: u.packageExpiresAt
+      packageExpiresAt: u.packageExpiresAt,
+      createdAt: u.createdAt,
     }));
     
     return c.json({ success: true, data: safeUsers });

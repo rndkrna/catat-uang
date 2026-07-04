@@ -11,7 +11,6 @@ import {
   LogOut,
 } from "lucide-react";
 
-// Password admin kini ditangani oleh server
 const ADMIN_SESSION_KEY = "admin_jwt_token";
 
 export default function AdminPanel() {
@@ -25,7 +24,6 @@ export default function AdminPanel() {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [approving, setApproving] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState<"payments" | "users">("payments");
   const [updatingUser, setUpdatingUser] = useState<number | null>(null);
 
   // Cek session admin
@@ -43,7 +41,6 @@ export default function AdminPanel() {
         body: JSON.stringify({ password: passwordInput }),
       });
       const data = await res.json();
-
       if (res.ok && data.success) {
         sessionStorage.setItem(ADMIN_SESSION_KEY, data.token);
         setIsAuthenticated(true);
@@ -61,52 +58,33 @@ export default function AdminPanel() {
     sessionStorage.removeItem(ADMIN_SESSION_KEY);
     setIsAuthenticated(false);
     setPayments([]);
+    setUsers([]);
   };
 
-  const fetchPayments = async () => {
+  const fetchAll = async () => {
     setLoading(true);
+    const token = sessionStorage.getItem(ADMIN_SESSION_KEY);
     try {
-      const token = sessionStorage.getItem(ADMIN_SESSION_KEY);
-      const res = await fetch("/api/payments", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (data.success) {
-        setPayments(data.data);
-      }
+      const [resPayments, resUsers] = await Promise.all([
+        fetch("/api/payments", { headers: { Authorization: `Bearer ${token}` } }),
+        fetch("/api/admin/users", { headers: { Authorization: `Bearer ${token}` } }),
+      ]);
+      const dataPayments = await resPayments.json();
+      const dataUsers = await resUsers.json();
+      if (dataPayments.success) setPayments(dataPayments.data);
+      if (dataUsers.success) setUsers(dataUsers.data);
     } catch (error) {
-      console.error("Failed to fetch payments:", error);
-    }
-    setLoading(false);
-  };
-
-  const fetchUsers = async () => {
-    setLoading(true);
-    try {
-      const token = sessionStorage.getItem(ADMIN_SESSION_KEY);
-      const res = await fetch("/api/admin/users", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (data.success) {
-        setUsers(data.data);
-      }
-    } catch (error) {
-      console.error("Failed to fetch users:", error);
+      console.error("Failed to fetch data:", error);
     }
     setLoading(false);
   };
 
   useEffect(() => {
-    if (isAuthenticated) {
-      if (activeTab === "payments") fetchPayments();
-      if (activeTab === "users") fetchUsers();
-    }
-  }, [isAuthenticated, activeTab]);
+    if (isAuthenticated) fetchAll();
+  }, [isAuthenticated]);
 
   const handleApprove = async (id: number) => {
     if (!confirm("Anda yakin ingin meng-approve pembayaran ini?")) return;
-
     setApproving(id);
     try {
       const token = sessionStorage.getItem(ADMIN_SESSION_KEY);
@@ -127,22 +105,12 @@ export default function AdminPanel() {
 
   const formatPackageActivePeriod = (expiresAt?: string | null) => {
     if (!expiresAt) {
-      return {
-        label: "Belum diset",
-        detail: "Masa aktif belum tersedia",
-        isExpired: false,
-      };
+      return { label: "Belum diset", detail: "Masa aktif belum tersedia", isExpired: false };
     }
-
     const expiryDate = new Date(expiresAt);
     if (Number.isNaN(expiryDate.getTime())) {
-      return {
-        label: "Tanggal tidak valid",
-        detail: "Periksa data masa aktif",
-        isExpired: true,
-      };
+      return { label: "Tanggal tidak valid", detail: "Periksa data masa aktif", isExpired: true };
     }
-
     const today = new Date();
     const diffMs = expiryDate.getTime() - today.getTime();
     const remainingDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
@@ -151,29 +119,31 @@ export default function AdminPanel() {
       month: "short",
       year: "numeric",
     });
-
     if (remainingDays < 0) {
-      return {
-        label: formattedDate,
-        detail: "Sudah berakhir",
-        isExpired: true,
-      };
+      return { label: formattedDate, detail: "Sudah berakhir", isExpired: true };
     }
-
     return {
       label: formattedDate,
-      detail:
-        remainingDays === 0
-          ? "Berakhir hari ini"
-          : `Sisa ${remainingDays} hari`,
+      detail: remainingDays === 0 ? "Berakhir hari ini" : `Sisa ${remainingDays} hari`,
       isExpired: false,
     };
   };
 
-  const handleUpdatePackage = async (userId: number, newPkg: string) => {
-    if (!confirm(`Ubah paket user ini menjadi ${newPkg.toUpperCase()}?`))
-      return;
+  const formatRegisteredAt = (createdAt?: string | null) => {
+    if (!createdAt) return { date: "-", time: "" };
+    const d = new Date(createdAt);
+    if (Number.isNaN(d.getTime())) return { date: "-", time: "" };
+    const date = d.toLocaleDateString("id-ID", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+    const time = d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+    return { date, time };
+  };
 
+  const handleUpdatePackage = async (userId: number, newPkg: string) => {
+    if (!confirm(`Ubah paket user ini menjadi ${newPkg.toUpperCase()}?`)) return;
     setUpdatingUser(userId);
     try {
       const token = sessionStorage.getItem(ADMIN_SESSION_KEY);
@@ -186,8 +156,7 @@ export default function AdminPanel() {
         body: JSON.stringify({ package: newPkg }),
       });
       if (res.ok) {
-        // Refresh users
-        fetchUsers();
+        fetchAll();
         alert("Paket berhasil diubah!");
       } else {
         alert("Gagal mengubah paket");
@@ -208,9 +177,7 @@ export default function AdminPanel() {
               <Lock size={28} className="text-orange-600" />
             </div>
             <h1 className="text-2xl font-black text-slate-900">Admin Panel</h1>
-            <p className="text-slate-500 text-sm mt-1">
-              Tulis Duit — Akses Terbatas
-            </p>
+            <p className="text-slate-500 text-sm mt-1">Tulis Duit — Akses Terbatas</p>
           </div>
 
           <form
@@ -267,7 +234,9 @@ export default function AdminPanel() {
   // --- ADMIN DASHBOARD ---
   return (
     <div className="min-h-screen bg-slate-50 p-6 md:p-12 font-sans">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-6xl mx-auto">
+
+        {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-black text-slate-900 flex items-center gap-3">
@@ -275,13 +244,12 @@ export default function AdminPanel() {
               Admin Dashboard
             </h1>
             <p className="text-slate-500 font-medium mt-1">
-              Manajemen Persetujuan Upgrade Paket
+              Manajemen Pembayaran & Pengguna
             </p>
           </div>
-
           <div className="flex items-center gap-3">
             <button
-              onClick={activeTab === "payments" ? fetchPayments : fetchUsers}
+              onClick={fetchAll}
               className="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors"
             >
               <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
@@ -297,268 +265,105 @@ export default function AdminPanel() {
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-2 mb-6">
-          <button
-            onClick={() => setActiveTab("payments")}
-            className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors ${
-              activeTab === "payments"
-                ? "bg-orange-600 text-white"
-                : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
-            }`}
-          >
-            Approval Pembayaran
-          </button>
-          <button
-            onClick={() => setActiveTab("users")}
-            className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors ${
-              activeTab === "users"
-                ? "bg-orange-600 text-white"
-                : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
-            }`}
-          >
-            Kelola User
-          </button>
+        {/* Stats */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-10">
+          <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm text-center">
+            <p className="text-3xl font-black text-orange-600">{payments.length}</p>
+            <p className="text-xs text-slate-500 font-bold mt-1">Menunggu Approval</p>
+          </div>
+          <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm text-center">
+            <p className="text-3xl font-black text-slate-900">
+              {new Intl.NumberFormat("id-ID", {
+                style: "currency",
+                currency: "IDR",
+                maximumFractionDigits: 0,
+                notation: "compact",
+              }).format(payments.reduce((s, p) => s + p.amount, 0))}
+            </p>
+            <p className="text-xs text-slate-500 font-bold mt-1">Total Nominal Pending</p>
+          </div>
+          <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm text-center">
+            <p className="text-3xl font-black text-blue-600">{users.length}</p>
+            <p className="text-xs text-slate-500 font-bold mt-1">Total User</p>
+          </div>
+          <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm text-center">
+            <p className="text-3xl font-black text-purple-600">
+              {users.filter((u) => u.package !== "free").length}
+            </p>
+            <p className="text-xs text-slate-500 font-bold mt-1">User Berbayar</p>
+          </div>
         </div>
 
-        {/* Tab Content: Payments */}
-        {activeTab === "payments" && (
-          <>
-            <div className="grid grid-cols-3 gap-4 mb-8">
-              <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm text-center">
-                <p className="text-3xl font-black text-orange-600">
-                  {payments.length}
-                </p>
-                <p className="text-xs text-slate-500 font-bold mt-1">
-                  Menunggu Approval
-                </p>
-              </div>
-              <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm text-center">
-                <p className="text-3xl font-black text-slate-900">
-                  {new Intl.NumberFormat("id-ID", {
-                    style: "currency",
-                    currency: "IDR",
-                    maximumFractionDigits: 0,
-                    notation: "compact",
-                  }).format(payments.reduce((s, p) => s + p.amount, 0))}
-                </p>
-                <p className="text-xs text-slate-500 font-bold mt-1">
-                  Total Nominal Pending
-                </p>
-              </div>
-              <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm text-center">
-                <p className="text-3xl font-black text-green-600">
-                  {new Set(payments.map((p) => p.userPhone)).size}
-                </p>
-                <p className="text-xs text-slate-500 font-bold mt-1">
-                  User Berbeda
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-[24px] border border-slate-100 shadow-sm overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider font-bold border-b border-slate-100">
-                      <th className="px-6 py-4">ID</th>
-                      <th className="px-6 py-4">Pengguna</th>
-                      <th className="px-6 py-4">Paket Tujuan</th>
-                      <th className="px-6 py-4">Nominal</th>
-                      <th className="px-6 py-4">Waktu Request</th>
-                      <th className="px-6 py-4">Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {loading && payments.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan={6}
-                          className="px-6 py-12 text-center text-slate-400"
-                        >
-                          <Loader2
-                            size={24}
-                            className="animate-spin mx-auto mb-2"
-                          />
-                          Memuat data pembayaran...
-                        </td>
-                      </tr>
-                    ) : payments.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan={6}
-                          className="px-6 py-12 text-center text-slate-400 font-medium"
-                        >
-                          ✅ Semua pembayaran sudah diproses. Tidak ada yang
-                          menunggu.
-                        </td>
-                      </tr>
-                    ) : (
-                      payments.map((payment) => (
-                        <tr
-                          key={payment.id}
-                          className="hover:bg-slate-50/50 transition-colors"
-                        >
-                          <td className="px-6 py-4 text-sm font-medium text-slate-900">
-                            #{payment.id}
-                          </td>
-                          <td className="px-6 py-4">
-                            <p className="text-sm font-bold text-slate-900">
-                              {payment.userName || "Tanpa Nama"}
-                            </p>
-                            <p className="text-xs text-slate-500">
-                              {payment.userPhone}
-                            </p>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-orange-100 text-orange-800 uppercase tracking-wider">
-                              {payment.package}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-sm font-bold text-slate-900">
-                            {new Intl.NumberFormat("id-ID", {
-                              style: "currency",
-                              currency: "IDR",
-                              maximumFractionDigits: 0,
-                            }).format(payment.amount)}
-                          </td>
-                          <td className="px-6 py-4 text-xs text-slate-500">
-                            {new Date(payment.createdAt).toLocaleString(
-                              "id-ID",
-                            )}
-                          </td>
-                          <td className="px-6 py-4">
-                            <button
-                              onClick={() => handleApprove(payment.id)}
-                              disabled={approving === payment.id}
-                              className="flex items-center gap-1.5 bg-green-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-green-600 transition-colors disabled:opacity-50"
-                            >
-                              {approving === payment.id ? (
-                                <Loader2 size={14} className="animate-spin" />
-                              ) : (
-                                <Check size={14} />
-                              )}
-                              ACC / Setuju
-                            </button>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* Tab Content: Users */}
-        {activeTab === "users" && (
+        {/* ===== TABEL APPROVAL PEMBAYARAN ===== */}
+        <div className="mb-10">
+          <h2 className="text-lg font-black text-slate-800 mb-4">Approval Pembayaran</h2>
           <div className="bg-white rounded-[24px] border border-slate-100 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider font-bold border-b border-slate-100">
                     <th className="px-6 py-4">ID</th>
-                    <th className="px-6 py-4">Nomor WhatsApp</th>
-                    <th className="px-6 py-4">Paket Saat Ini</th>
-                    <th className="px-6 py-4">Masa Aktif Paket</th>
-                    <th className="px-6 py-4">Aksi (Ubah Paket)</th>
+                    <th className="px-6 py-4">Pengguna</th>
+                    <th className="px-6 py-4">Paket Tujuan</th>
+                    <th className="px-6 py-4">Nominal</th>
+                    <th className="px-6 py-4">Waktu Request</th>
+                    <th className="px-6 py-4">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {loading && users.length === 0 ? (
+                  {loading && payments.length === 0 ? (
                     <tr>
-                      <td
-                        colSpan={5}
-                        className="px-6 py-12 text-center text-slate-400"
-                      >
-                        <Loader2
-                          size={24}
-                          className="animate-spin mx-auto mb-2"
-                        />
-                        Memuat data pengguna...
+                      <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
+                        <Loader2 size={24} className="animate-spin mx-auto mb-2" />
+                        Memuat data pembayaran...
                       </td>
                     </tr>
-                  ) : users.length === 0 ? (
+                  ) : payments.length === 0 ? (
                     <tr>
-                      <td
-                        colSpan={5}
-                        className="px-6 py-12 text-center text-slate-400 font-medium"
-                      >
-                        Belum ada pengguna terdaftar.
+                      <td colSpan={6} className="px-6 py-12 text-center text-slate-400 font-medium">
+                        ✅ Semua pembayaran sudah diproses. Tidak ada yang menunggu.
                       </td>
                     </tr>
                   ) : (
-                    users.map((user) => (
-                      <tr
-                        key={user.id}
-                        className="hover:bg-slate-50/50 transition-colors"
-                      >
+                    payments.map((payment) => (
+                      <tr key={payment.id} className="hover:bg-slate-50/50 transition-colors">
                         <td className="px-6 py-4 text-sm font-medium text-slate-900">
-                          #{user.id}
+                          #{payment.id}
                         </td>
                         <td className="px-6 py-4">
                           <p className="text-sm font-bold text-slate-900">
-                            {user.phoneNumber}
+                            {payment.userName || "Tanpa Nama"}
                           </p>
+                          <p className="text-xs text-slate-500">{payment.userPhone}</p>
                         </td>
                         <td className="px-6 py-4">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${
-                              user.package === "premium" ||
-                              user.package === "pro"
-                                ? "bg-purple-100 text-purple-800"
-                                : "bg-slate-100 text-slate-800"
-                            }`}
-                          >
-                            {user.package}
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-orange-100 text-orange-800 uppercase tracking-wider">
+                            {payment.package}
                           </span>
                         </td>
-                        <td className="px-6 py-4">
-                          {(() => {
-                            const activePeriod = formatPackageActivePeriod(
-                              user.packageExpiresAt,
-                            );
-                            return (
-                              <div>
-                                <p
-                                  className={`text-sm font-bold ${activePeriod.isExpired ? "text-red-600" : "text-slate-900"}`}
-                                >
-                                  {activePeriod.label}
-                                </p>
-                                <p
-                                  className={`text-xs ${activePeriod.isExpired ? "text-red-500" : "text-slate-500"}`}
-                                >
-                                  {activePeriod.detail}
-                                </p>
-                              </div>
-                            );
-                          })()}
+                        <td className="px-6 py-4 text-sm font-bold text-slate-900">
+                          {new Intl.NumberFormat("id-ID", {
+                            style: "currency",
+                            currency: "IDR",
+                            maximumFractionDigits: 0,
+                          }).format(payment.amount)}
+                        </td>
+                        <td className="px-6 py-4 text-xs text-slate-500">
+                          {new Date(payment.createdAt).toLocaleString("id-ID")}
                         </td>
                         <td className="px-6 py-4">
-                          <div className="flex gap-2">
-                            {["free", "lite", "starter", "premium", "pro"].map(
-                              (pkg) => (
-                                <button
-                                  key={pkg}
-                                  onClick={() =>
-                                    handleUpdatePackage(user.id, pkg)
-                                  }
-                                  disabled={
-                                    updatingUser === user.id ||
-                                    user.package === pkg
-                                  }
-                                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
-                                    user.package === pkg
-                                      ? "bg-slate-100 text-slate-400 cursor-not-allowed"
-                                      : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
-                                  }`}
-                                >
-                                  {pkg.toUpperCase()}
-                                </button>
-                              ),
+                          <button
+                            onClick={() => handleApprove(payment.id)}
+                            disabled={approving === payment.id}
+                            className="flex items-center gap-1.5 bg-green-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-green-600 transition-colors disabled:opacity-50"
+                          >
+                            {approving === payment.id ? (
+                              <Loader2 size={14} className="animate-spin" />
+                            ) : (
+                              <Check size={14} />
                             )}
-                          </div>
+                            ACC / Setuju
+                          </button>
                         </td>
                       </tr>
                     ))
@@ -567,7 +372,114 @@ export default function AdminPanel() {
               </table>
             </div>
           </div>
-        )}
+        </div>
+
+        {/* ===== TABEL KELOLA USER ===== */}
+        <div>
+          <h2 className="text-lg font-black text-slate-800 mb-4">Kelola User</h2>
+          <div className="bg-white rounded-[24px] border border-slate-100 shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider font-bold border-b border-slate-100">
+                    <th className="px-6 py-4">ID</th>
+                    <th className="px-6 py-4">Nomor WhatsApp</th>
+                    <th className="px-6 py-4">Tanggal Daftar</th>
+                    <th className="px-6 py-4">Paket Saat Ini</th>
+                    <th className="px-6 py-4">Masa Aktif Paket</th>
+                    <th className="px-6 py-4">Aksi (Ubah Paket)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {loading && users.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
+                        <Loader2 size={24} className="animate-spin mx-auto mb-2" />
+                        Memuat data pengguna...
+                      </td>
+                    </tr>
+                  ) : users.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-12 text-center text-slate-400 font-medium">
+                        Belum ada pengguna terdaftar.
+                      </td>
+                    </tr>
+                  ) : (
+                    users.map((user) => {
+                      const activePeriod = formatPackageActivePeriod(user.packageExpiresAt);
+                      const registered = formatRegisteredAt(user.createdAt);
+                      return (
+                        <tr key={user.id} className="hover:bg-slate-50/50 transition-colors">
+                          <td className="px-6 py-4 text-sm font-medium text-slate-900">
+                            #{user.id}
+                          </td>
+                          <td className="px-6 py-4">
+                            <p className="text-sm font-bold text-slate-900">
+                              {user.phoneNumber}
+                            </p>
+                            {user.name && (
+                              <p className="text-xs text-slate-500">{user.name}</p>
+                            )}
+                          </td>
+                          <td className="px-6 py-4">
+                            <p className="text-sm font-medium text-slate-900">{registered.date}</p>
+                            {registered.time && (
+                              <p className="text-xs text-slate-500">{registered.time}</p>
+                            )}
+                          </td>
+                          <td className="px-6 py-4">
+                            <span
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${
+                                user.package === "premium" || user.package === "pro"
+                                  ? "bg-purple-100 text-purple-800"
+                                  : user.package === "starter" || user.package === "lite"
+                                  ? "bg-orange-100 text-orange-800"
+                                  : "bg-slate-100 text-slate-800"
+                              }`}
+                            >
+                              {user.package}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <p
+                              className={`text-sm font-bold ${activePeriod.isExpired ? "text-red-600" : "text-slate-900"}`}
+                            >
+                              {activePeriod.label}
+                            </p>
+                            <p
+                              className={`text-xs ${activePeriod.isExpired ? "text-red-500" : "text-slate-500"}`}
+                            >
+                              {activePeriod.detail}
+                            </p>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex gap-2 flex-wrap">
+                              {["free", "lite", "starter", "premium", "pro"].map((pkg) => (
+                                <button
+                                  key={pkg}
+                                  onClick={() => handleUpdatePackage(user.id, pkg)}
+                                  disabled={updatingUser === user.id || user.package === pkg}
+                                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                                    user.package === pkg
+                                      ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+                                      : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+                                  }`}
+                                >
+                                  {pkg.toUpperCase()}
+                                </button>
+                              ))}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   );
