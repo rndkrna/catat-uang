@@ -289,6 +289,8 @@ class DatabaseService {
     paymentMethod: string = 'mayar'
   ): Promise<Payment> {
     if (!this.client) throw new Error('Database not connected');
+    
+    // Coba simpan dengan kolom lengkap Mayar
     const { data, error } = await this.client
       .from('payments')
       .insert([{ 
@@ -304,12 +306,30 @@ class DatabaseService {
       .select()
       .single();
 
-    if (error || !data) {
-      throw new Error(error?.message || 'Failed to create payment');
+    if (error) {
+      console.warn('[Database Warning] createPayment with Mayar fields failed, trying fallback insert:', error.message);
+      // Fallback jika kolom mayarLink / mayarPaymentId belum ditambahkan ke Supabase
+      const { data: fallbackData, error: fallbackError } = await this.client
+        .from('payments')
+        .insert([{ 
+          userId, 
+          package: pkg, 
+          amount, 
+          status: 'pending'
+        }])
+        .select()
+        .single();
+
+      if (fallbackError || !fallbackData) {
+        throw new Error(fallbackError?.message || error.message || 'Failed to create payment');
+      }
+
+      return fallbackData as Payment;
     }
     
     return data as Payment;
   }
+
 
   async getPendingPayments(): Promise<(Payment & { userPhone: string, userName: string | null })[]> {
     if (!this.client) throw new Error('Database not connected');

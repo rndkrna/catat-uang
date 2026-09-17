@@ -385,7 +385,7 @@ export default function PilihPaket() {
                   </div>
 
                   {/* Primary Option: Mayar.id Automatic Payment Gateway */}
-                  <div className="mb-6">
+                  <div>
                     <button 
                       onClick={async () => {
                         if (!activePlan) return;
@@ -433,78 +433,11 @@ export default function PilihPaket() {
                       <span>Bayar Otomatis via Mayar.id</span>
                     </button>
                     
-                    <p className="text-[11px] text-center text-slate-400 font-medium mt-2">
+                    <p className="text-[11px] text-center text-slate-400 font-medium mt-3">
                       Mendukung QRIS, GoPay, OVO, DANA, Virtual Account, & Kartu Kredit. Verifikasi Instant 24/7.
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-3 my-6">
-                    <div className="h-px bg-slate-200 flex-1"></div>
-                    <span className="text-[11px] font-bold text-slate-400 uppercase">Atau Gunakan QRIS Manual</span>
-                    <div className="h-px bg-slate-200 flex-1"></div>
-                  </div>
-
-                  {/* QR Section (Manual Fallback) */}
-                  <div className="text-center mb-6">
-                    <div className="relative inline-block p-3 bg-white rounded-2xl border-2 border-slate-100 shadow-inner mb-3">
-                      <img 
-                        src="/images/qris.jpeg" 
-                        alt="QRIS" 
-                        className="w-36 h-36 sm:w-44 sm:h-44 rounded-xl object-cover"
-                      />
-                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-white rounded-lg shadow-md flex items-center justify-center">
-                        <QrCode size={20} className="text-orange-500" />
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-center gap-2 text-slate-500">
-                      <Clock size={14} />
-                      <span className="text-xs font-bold">Simpan bukti jika membayar via QRIS Manual</span>
-                    </div>
-                  </div>
-
-                  {/* Manual Transfer Confirmation Button */}
-                  <button 
-                    onClick={async () => {
-                      if (!activePlan) return;
-                      
-                      const savedUser = localStorage.getItem('user');
-                      if (!savedUser) {
-                        alert('Sesi telah habis, silakan login kembali.');
-                        navigate('/login');
-                        return;
-                      }
-                      
-                      const userObj = JSON.parse(savedUser);
-                      const totalTransfer = activePlan ? getPrice(activePlan.price, activePlan.originalPrice).rawTotal - uniqueDiscount : 0;
-                      
-                      try {
-                        const res = await fetch('/api/payments', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({
-                            userId: userObj.id,
-                            package: activePlan.id,
-                            period: selectedPeriod,
-                            amount: totalTransfer
-                          })
-                        });
-                        
-                        if (res.ok) {
-                          navigate('/menunggu-konfirmasi');
-                        } else {
-                          const data = await res.json();
-                          alert(data.message || 'Gagal mengirim data pembayaran.');
-                        }
-                      } catch (error) {
-                        console.error('Payment error:', error);
-                        alert('Terjadi kesalahan koneksi.');
-                      }
-                    }}
-                    className="w-full py-3.5 bg-slate-100 text-slate-700 rounded-2xl text-xs font-bold hover:bg-slate-200 transition-all flex items-center justify-center gap-2"
-                  >
-                    Konfirmasi Transfer QRIS Manual
-                  </button>
                 </div>
               </motion.div>
             </div>
