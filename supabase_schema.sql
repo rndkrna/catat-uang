@@ -31,8 +31,19 @@ CREATE TABLE IF NOT EXISTS public.payments (
   package TEXT NOT NULL,
   amount NUMERIC NOT NULL,
   status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  "period" TEXT DEFAULT 'monthly',
+  "mayarPaymentId" TEXT,
+  "mayarLink" TEXT,
+  "paymentMethod" TEXT DEFAULT 'mayar',
   "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+-- Migration query untuk tabel payments (jika tabel sudah ada):
+-- ALTER TABLE public.payments ADD COLUMN IF NOT EXISTS "period" TEXT DEFAULT 'monthly';
+-- ALTER TABLE public.payments ADD COLUMN IF NOT EXISTS "mayarPaymentId" TEXT;
+-- ALTER TABLE public.payments ADD COLUMN IF NOT EXISTS "mayarLink" TEXT;
+-- ALTER TABLE public.payments ADD COLUMN IF NOT EXISTS "paymentMethod" TEXT DEFAULT 'mayar';
+
 
 -- 4. Set RLS (Row Level Security) ke false atau buat policy (Jika ingin diakses lewat anon key).
 -- Tapi karena backend Anda menggunakan service_role key, RLS tidak masalah karena service_role akan membypass RLS.

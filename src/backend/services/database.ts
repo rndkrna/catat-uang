@@ -29,8 +29,13 @@ export interface Payment {
   package: string;
   amount: number;
   status: 'pending' | 'approved' | 'rejected';
+  period?: 'monthly' | 'quarterly' | 'yearly' | string;
+  mayarPaymentId?: string | null;
+  mayarLink?: string | null;
+  paymentMethod?: string | null;
   createdAt: string;
 }
+
 
 class DatabaseService {
   private client: SupabaseClient | null = null;
@@ -274,11 +279,28 @@ class DatabaseService {
     }, 0);
   }
 
-  async createPayment(userId: number, pkg: string, amount: number): Promise<Payment> {
+  async createPayment(
+    userId: number, 
+    pkg: string, 
+    amount: number, 
+    period: string = 'monthly',
+    mayarPaymentId?: string,
+    mayarLink?: string,
+    paymentMethod: string = 'mayar'
+  ): Promise<Payment> {
     if (!this.client) throw new Error('Database not connected');
     const { data, error } = await this.client
       .from('payments')
-      .insert([{ userId, package: pkg, amount, status: 'pending' }])
+      .insert([{ 
+        userId, 
+        package: pkg, 
+        amount, 
+        status: 'pending',
+        period,
+        mayarPaymentId: mayarPaymentId || null,
+        mayarLink: mayarLink || null,
+        paymentMethod
+      }])
       .select()
       .single();
 
@@ -305,10 +327,25 @@ class DatabaseService {
       package: p.package,
       amount: p.amount,
       status: p.status,
+      period: p.period,
+      mayarPaymentId: p.mayarPaymentId,
+      mayarLink: p.mayarLink,
+      paymentMethod: p.paymentMethod,
       createdAt: p.createdAt,
       userPhone: p.users?.phoneNumber || '',
       userName: p.users?.name || null
     }));
+  }
+
+  async getPaymentByMayarId(mayarPaymentId: string): Promise<Payment | null> {
+    if (!this.client) throw new Error('Database not connected');
+    const { data } = await this.client
+      .from('payments')
+      .select('*')
+      .eq('mayarPaymentId', mayarPaymentId)
+      .maybeSingle();
+
+    return data as Payment | null;
   }
 
   async approvePayment(paymentId: number): Promise<void> {
@@ -332,8 +369,13 @@ class DatabaseService {
       
     if (payErr) throw new Error('Failed to approve payment');
     
+    // Perhitungan durasi berdasarkan paket & period
+    let daysToAdd = 30;
+    if (payment.period === 'quarterly') daysToAdd = 90;
+    if (payment.period === 'yearly') daysToAdd = 365;
+
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 30);
+    expiresAt.setDate(expiresAt.getDate() + daysToAdd);
     const expiresAtStr = expiresAt.toISOString();
     
     // Update user package
@@ -344,6 +386,23 @@ class DatabaseService {
       
     if (userErr) throw new Error('Failed to update user package');
   }
+
+  async approvePaymentByMayarId(mayarPaymentId: string): Promise<Payment> {
+    if (!this.client) throw new Error('Database not connected');
+
+    const payment = await this.getPaymentByMayarId(mayarPaymentId);
+    if (!payment) {
+      throw new Error(`Payment with Mayar ID ${mayarPaymentId} not found`);
+    }
+
+    if (payment.status === 'approved') {
+      return payment; // Already approved
+    }
+
+    await this.approvePayment(payment.id);
+    return { ...payment, status: 'approved' };
+  }
+
 }
 
 export const db = new DatabaseService();

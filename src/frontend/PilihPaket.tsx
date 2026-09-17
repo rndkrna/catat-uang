@@ -290,7 +290,7 @@ export default function PilihPaket() {
           </div>
         </section>
 
-        {/* Payment Modal with QRIS and WhatsApp Redirect */}
+        {/* Payment Modal with Mayar.id Integration and QRIS Fallback */}
         <AnimatePresence>
           {showPayment && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
@@ -310,10 +310,10 @@ export default function PilihPaket() {
               >
                 <div className="p-6 sm:p-8">
                   {/* Modal Header */}
-                  <div className="flex items-start justify-between gap-4 mb-8">
+                  <div className="flex items-start justify-between gap-4 mb-6">
                     <div>
-                      <h2 className="text-xl sm:text-2xl font-black text-slate-900">Pembayaran QRIS</h2>
-                      <p className="text-xs sm:text-sm text-slate-500 font-medium">Selesaikan pembayaran untuk mengaktifkan paket</p>
+                      <h2 className="text-xl sm:text-2xl font-black text-slate-900">Pembayaran Paket</h2>
+                      <p className="text-xs sm:text-sm text-slate-500 font-medium">Pilih metode pembayaran untuk mengaktifkan paket Anda</p>
                     </div>
                     <button 
                       onClick={() => setShowPayment(false)}
@@ -384,55 +384,86 @@ export default function PilihPaket() {
                     </div>
                   </div>
 
-                  {/* QR Section */}
-                  <div className="text-center mb-8">
-                    <div className="relative inline-block p-4 bg-white rounded-3xl border-2 border-slate-100 shadow-inner mb-4">
+                  {/* Primary Option: Mayar.id Automatic Payment Gateway */}
+                  <div className="mb-6">
+                    <button 
+                      onClick={async () => {
+                        if (!activePlan) return;
+                        
+                        const savedUser = localStorage.getItem('user');
+                        if (!savedUser) {
+                          alert('Sesi telah habis, silakan login kembali.');
+                          navigate('/login');
+                          return;
+                        }
+                        
+                        const userObj = JSON.parse(savedUser);
+                        const totalTransfer = activePlan ? getPrice(activePlan.price, activePlan.originalPrice).rawTotal - uniqueDiscount : 0;
+                        
+                        try {
+                          const res = await fetch('/api/payments/mayar/create', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              userId: userObj.id,
+                              package: activePlan.id,
+                              period: selectedPeriod,
+                              amount: totalTransfer
+                            })
+                          });
+                          
+                          const data = await res.json();
+                          if (res.ok && data.success && data.data?.paymentUrl) {
+                            if (data.data.paymentUrl.startsWith('http')) {
+                              window.location.href = data.data.paymentUrl;
+                            } else {
+                              navigate('/menunggu-konfirmasi');
+                            }
+                          } else {
+                            alert(data.message || 'Gagal memproses pembayaran via Mayar.id.');
+                          }
+                        } catch (error) {
+                          console.error('Mayar Payment error:', error);
+                          alert('Terjadi kesalahan koneksi saat membuat link Mayar.id.');
+                        }
+                      }}
+                      className="w-full py-4 bg-gradient-to-r from-orange-600 to-orange-500 text-white rounded-2xl text-sm font-black hover:from-orange-700 hover:to-orange-600 transition-all flex items-center justify-center gap-3 shadow-lg shadow-orange-200 hover:shadow-orange-300 transform active:scale-[0.99]"
+                    >
+                      <Zap size={18} className="text-amber-300 fill-amber-300" />
+                      <span>Bayar Otomatis via Mayar.id</span>
+                    </button>
+                    
+                    <p className="text-[11px] text-center text-slate-400 font-medium mt-2">
+                      Mendukung QRIS, GoPay, OVO, DANA, Virtual Account, & Kartu Kredit. Verifikasi Instant 24/7.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-3 my-6">
+                    <div className="h-px bg-slate-200 flex-1"></div>
+                    <span className="text-[11px] font-bold text-slate-400 uppercase">Atau Gunakan QRIS Manual</span>
+                    <div className="h-px bg-slate-200 flex-1"></div>
+                  </div>
+
+                  {/* QR Section (Manual Fallback) */}
+                  <div className="text-center mb-6">
+                    <div className="relative inline-block p-3 bg-white rounded-2xl border-2 border-slate-100 shadow-inner mb-3">
                       <img 
                         src="/images/qris.jpeg" 
                         alt="QRIS" 
-                        className="w-48 h-48 rounded-xl object-cover"
+                        className="w-36 h-36 sm:w-44 sm:h-44 rounded-xl object-cover"
                       />
-                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 bg-white rounded-lg shadow-md flex items-center justify-center">
-                        <QrCode size={24} className="text-orange-500" />
+                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-white rounded-lg shadow-md flex items-center justify-center">
+                        <QrCode size={20} className="text-orange-500" />
                       </div>
                     </div>
                     
-                    <div className="flex items-center justify-center gap-2 text-slate-500 mb-2">
-                      <Clock size={16} />
-                      <span className="text-sm font-bold">Harap simpan bukti pembayaran</span>
+                    <div className="flex items-center justify-center gap-2 text-slate-500">
+                      <Clock size={14} />
+                      <span className="text-xs font-bold">Simpan bukti jika membayar via QRIS Manual</span>
                     </div>
                   </div>
 
-                  {/* Warning */}
-                  <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-6 flex gap-3">
-                    <div className="mt-0.5 text-orange-600">
-                      <CheckCircle2 size={18} />
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-orange-800 mb-1">Bayar sesuai Total Pembayaran!</p>
-                      <p className="text-xs text-orange-600/80 leading-relaxed">Sistem akan memverifikasi otomatis berdasarkan nominal Promo Akun Baru di atas. Jika nominal transfer berbeda, paket tidak akan aktif.</p>
-                    </div>
-                  </div>
-
-                  {/* Instructions */}
-                  <div className="space-y-3 mb-8">
-                    {[
-                      'Buka aplikasi e-wallet atau Mobile Banking.',
-                      'Pilih fitur Scan/Bayar dan arahkan ke kode QR di atas.',
-                      'Ketik nominal transfer TEPAT SESUAI Total Pembayaran.',
-                      'Selesaikan pembayaran.',
-                      'Klik tombol di bawah ini (tidak perlu kirim bukti transfer).'
-                    ].map((step, i) => (
-                      <div key={i} className="flex items-start gap-3">
-                        <div className="w-5 h-5 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5">
-                          {i + 1}
-                        </div>
-                        <p className="text-[13px] text-slate-600 font-medium">{step}</p>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* WhatsApp Button */}
+                  {/* Manual Transfer Confirmation Button */}
                   <button 
                     onClick={async () => {
                       if (!activePlan) return;
@@ -454,6 +485,7 @@ export default function PilihPaket() {
                           body: JSON.stringify({
                             userId: userObj.id,
                             package: activePlan.id,
+                            period: selectedPeriod,
                             amount: totalTransfer
                           })
                         });
@@ -469,15 +501,16 @@ export default function PilihPaket() {
                         alert('Terjadi kesalahan koneksi.');
                       }
                     }}
-                    className="w-full py-4 bg-orange-600 text-white rounded-2xl text-sm font-black hover:bg-orange-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-orange-200"
+                    className="w-full py-3.5 bg-slate-100 text-slate-700 rounded-2xl text-xs font-bold hover:bg-slate-200 transition-all flex items-center justify-center gap-2"
                   >
-                    Saya Sudah Transfer Sesuai Nominal
+                    Konfirmasi Transfer QRIS Manual
                   </button>
                 </div>
               </motion.div>
             </div>
           )}
         </AnimatePresence>
+
 
         {/* Trusted By / Features Bar */}
         <section className="max-w-7xl mx-auto px-6">
